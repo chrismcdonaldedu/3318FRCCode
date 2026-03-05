@@ -40,6 +40,8 @@ public class SwerveModule {
     // Odometry/control signals should stay high-rate to avoid stale reads.
     private static final double CONTROL_SIGNAL_HZ = 100.0;
     private static final double TELEMETRY_SIGNAL_HZ = 20.0;
+    // Set true only if Phoenix Pro is licensed on all required devices.
+    private static final boolean USE_PHOENIX_PRO_FEATURES = false;
 
     // The three hardware devices on this corner
     private final TalonFX driveMotor;
@@ -49,11 +51,11 @@ public class SwerveModule {
     // Reusable control request objects — avoids creating garbage every loop
     // VelocityVoltage: tells the drive motor "spin at exactly X rotations/sec"
     private final VelocityVoltage driveRequest = new VelocityVoltage(0)
-            .withEnableFOC(true);   // FOC = Field-Oriented Control (better efficiency)
+            .withEnableFOC(USE_PHOENIX_PRO_FEATURES);
 
     // PositionVoltage: tells the steer motor "go to exactly this angle"
     private final PositionVoltage steerRequest = new PositionVoltage(0)
-            .withEnableFOC(true);
+            .withEnableFOC(USE_PHOENIX_PRO_FEATURES);
 
     // --------------------------------------------------------------------------
     // Constructor
@@ -117,9 +119,8 @@ public class SwerveModule {
         steerCfg.CurrentLimits.StatorCurrentLimit       = 40;
         steerCfg.CurrentLimits.StatorCurrentLimitEnable = true;
 
-        // === CRITICAL: Tell the steer motor to use the CANcoder as feedback ===
-        // FusedCANcoder means the motor's position loop works in WHEEL rotations,
-        // automatically correcting for any sensor drift using the absolute encoder.
+        // Use CANcoder as steer feedback. FusedCANcoder is a Phoenix Pro feature;
+        // fall back to RemoteCANcoder on unlicensed robots.
         //
         // SensorToMechanismRatio: How many CANcoder rotations per mechanism rotation.
         //   Our CANcoder IS the output shaft, so it's 1:1 → 1.0
@@ -127,7 +128,9 @@ public class SwerveModule {
         // RotorToSensorRatio: How many motor shaft rotations per CANcoder rotation.
         //   MK4 steer gearbox = 12.8:1, so motor spins 12.8x per wheel turn → 12.8
         steerCfg.Feedback.FeedbackRemoteSensorID  = cancoderId;
-        steerCfg.Feedback.FeedbackSensorSource    = FeedbackSensorSourceValue.FusedCANcoder;
+        steerCfg.Feedback.FeedbackSensorSource = USE_PHOENIX_PRO_FEATURES
+                ? FeedbackSensorSourceValue.FusedCANcoder
+                : FeedbackSensorSourceValue.RemoteCANcoder;
         steerCfg.Feedback.SensorToMechanismRatio  = 1.0;
         steerCfg.Feedback.RotorToSensorRatio      = Constants.Swerve.STEER_GEAR_RATIO; // 12.8
 
@@ -264,8 +267,11 @@ public class SwerveModule {
     }
 
     private static void applyOrThrow(StatusCode code, String action) {
-        if (!code.isOK()) {
+        if (code.isError()) {
             throw new IllegalStateException("[SwerveModule] Failed " + action + ": " + code.getName());
+        }
+        if (code.isWarning()) {
+            System.out.println("[SwerveModule] Warning during " + action + ": " + code.getName());
         }
     }
 }
