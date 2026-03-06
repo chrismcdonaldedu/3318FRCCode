@@ -1134,7 +1134,7 @@ public class DashboardFrame extends JFrame {
         appendDeviceLine(
                 sb,
                 statusFromBoolean(connected, liveTelemetry, data.cameraConnected(), "WARN"),
-                "PhotonVision camera",
+                "USB camera (C920)",
                 "connected=" + data.cameraConnected());
         sb.append('\n');
 
