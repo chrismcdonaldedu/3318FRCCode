@@ -227,16 +227,26 @@ public final class Constants {
 
         // ---- Steer motor PID (PositionVoltage + CANcoder feedback, Phoenix 6) ----
         // Source: CTRE official Phoenix 6 TunerConstants.java (steerGains).
-        // Phoenix Pro's FusedCANcoder tolerates a more aggressive kP than
-        // Phoenix 6 non-Pro RemoteCANcoder. Select the gain set automatically
-        // from USE_PHOENIX_PRO_FEATURES so the robot doesn't run Pro tuning
-        // while Pro is disabled.
+        // Phoenix Pro's FusedCANcoder tolerates a more aggressive tune than
+        // Phoenix 6 non-Pro RemoteCANcoder. Keep the non-Pro path in a
+        // plausible final-tune range, just somewhat below the fused default
+        // because the remote feedback path has more latency.
         public static final double STEER_kP_PRO = 100.0;       // V/rotation
-        public static final double STEER_kP_NON_PRO = 50.0;    // safer starting point for RemoteCANcoder
+        public static final double STEER_kP_NON_PRO = 70.0;    // near-tuned starting target for RemoteCANcoder
         public static final double STEER_kD_PRO = 0.5;         // V/(rotation/sec)
-        public static final double STEER_kD_NON_PRO = 0.3;     // a bit less aggressive with slower feedback
+        public static final double STEER_kD_NON_PRO = 0.2;     // moderate damping without matching fused-sensor aggressiveness
         public static final double STEER_kS = 0.1;             // Volts
         public static final double STEER_kV = 1.91;            // V/RPS
+
+        // ---- Low-speed anti-jitter ----
+        // Hold the last steer angle when the requested wheel speed is tiny so
+        // the modules don't hunt for a new heading while effectively stopped.
+        public static final double ANGLE_HOLD_SPEED_MPS = MAX_TRANSLATION_MPS * 0.01;
+
+        // ---- Validation mode ----
+        // Conservative open-loop outputs for one-module-at-a-time sign checks.
+        public static final double VALIDATION_DRIVE_DUTY_CYCLE = 0.08;
+        public static final double VALIDATION_STEER_DUTY_CYCLE = 0.05;
 
         // ---- Joystick deadband ----
         // Joystick axes within this range of zero are treated as zero.
