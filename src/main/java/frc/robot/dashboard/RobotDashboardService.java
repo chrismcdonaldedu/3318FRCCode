@@ -19,7 +19,7 @@ public class RobotDashboardService {
         void scheduleLevel1Climb();
     }
 
-    private static final String CONTRACT_VERSION = "2026.6.0";
+    private static final String CONTRACT_VERSION = "2026.7.0";
 
     private final Actions actions;
 
@@ -92,6 +92,20 @@ public class RobotDashboardService {
     private final DoublePublisher swerveFRAnglePub;
     private final DoublePublisher swerveBLAnglePub;
     private final DoublePublisher swerveBRAnglePub;
+
+    // CANCoder health (per-module)
+    private final DoublePublisher cancoderFLPosPub;
+    private final DoublePublisher cancoderFRPosPub;
+    private final DoublePublisher cancoderBLPosPub;
+    private final DoublePublisher cancoderBRPosPub;
+    private final DoublePublisher cancoderFLAbsRawPub;
+    private final DoublePublisher cancoderFRAbsRawPub;
+    private final DoublePublisher cancoderBLAbsRawPub;
+    private final DoublePublisher cancoderBRAbsRawPub;
+    private final BooleanPublisher cancoderFLOkPub;
+    private final BooleanPublisher cancoderFROkPub;
+    private final BooleanPublisher cancoderBLOkPub;
+    private final BooleanPublisher cancoderBROkPub;
 
     // Motor temperatures
     private final DoublePublisher driveFLTempPub;
@@ -207,6 +221,20 @@ public class RobotDashboardService {
         swerveBLAnglePub = table.getDoubleTopic("swerve/bl_angle_deg").publish();
         swerveBRAnglePub = table.getDoubleTopic("swerve/br_angle_deg").publish();
 
+        // CANCoder health
+        cancoderFLPosPub = table.getDoubleTopic("cancoder/fl_pos_rot").publish();
+        cancoderFRPosPub = table.getDoubleTopic("cancoder/fr_pos_rot").publish();
+        cancoderBLPosPub = table.getDoubleTopic("cancoder/bl_pos_rot").publish();
+        cancoderBRPosPub = table.getDoubleTopic("cancoder/br_pos_rot").publish();
+        cancoderFLAbsRawPub = table.getDoubleTopic("cancoder/fl_abs_raw_rot").publish();
+        cancoderFRAbsRawPub = table.getDoubleTopic("cancoder/fr_abs_raw_rot").publish();
+        cancoderBLAbsRawPub = table.getDoubleTopic("cancoder/bl_abs_raw_rot").publish();
+        cancoderBRAbsRawPub = table.getDoubleTopic("cancoder/br_abs_raw_rot").publish();
+        cancoderFLOkPub = table.getBooleanTopic("cancoder/fl_ok").publish();
+        cancoderFROkPub = table.getBooleanTopic("cancoder/fr_ok").publish();
+        cancoderBLOkPub = table.getBooleanTopic("cancoder/bl_ok").publish();
+        cancoderBROkPub = table.getBooleanTopic("cancoder/br_ok").publish();
+
         // Motor temperatures
         driveFLTempPub = table.getDoubleTopic("temps/drive_fl_c").publish();
         driveFRTempPub = table.getDoubleTopic("temps/drive_fr_c").publish();
@@ -319,6 +347,20 @@ public class RobotDashboardService {
         swerveFRAnglePub.set(snapshot.swerveFRAngleDeg());
         swerveBLAnglePub.set(snapshot.swerveBLAngleDeg());
         swerveBRAnglePub.set(snapshot.swerveBRAngleDeg());
+
+        // CANCoder health
+        cancoderFLPosPub.set(snapshot.cancoderFLPosRot());
+        cancoderFRPosPub.set(snapshot.cancoderFRPosRot());
+        cancoderBLPosPub.set(snapshot.cancoderBLPosRot());
+        cancoderBRPosPub.set(snapshot.cancoderBRPosRot());
+        cancoderFLAbsRawPub.set(snapshot.cancoderFLAbsRawRot());
+        cancoderFRAbsRawPub.set(snapshot.cancoderFRAbsRawRot());
+        cancoderBLAbsRawPub.set(snapshot.cancoderBLAbsRawRot());
+        cancoderBRAbsRawPub.set(snapshot.cancoderBRAbsRawRot());
+        cancoderFLOkPub.set(snapshot.cancoderFLOk());
+        cancoderFROkPub.set(snapshot.cancoderFROk());
+        cancoderBLOkPub.set(snapshot.cancoderBLOk());
+        cancoderBROkPub.set(snapshot.cancoderBROk());
 
         // Motor temperatures
         driveFLTempPub.set(snapshot.driveFLTempC());

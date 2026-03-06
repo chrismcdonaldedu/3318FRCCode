@@ -119,6 +119,23 @@ public class DashboardNtClient implements AutoCloseable {
             .subscribe(Double.NaN);
     private final DoubleSubscriber cancoderBROffsetSub = table.getDoubleTopic("cancoder/br_offset_rot")
             .subscribe(Double.NaN);
+    // CANCoder health (live position + status)
+    private final DoubleSubscriber cancoderFLPosSub = table.getDoubleTopic("cancoder/fl_pos_rot").subscribe(Double.NaN);
+    private final DoubleSubscriber cancoderFRPosSub = table.getDoubleTopic("cancoder/fr_pos_rot").subscribe(Double.NaN);
+    private final DoubleSubscriber cancoderBLPosSub = table.getDoubleTopic("cancoder/bl_pos_rot").subscribe(Double.NaN);
+    private final DoubleSubscriber cancoderBRPosSub = table.getDoubleTopic("cancoder/br_pos_rot").subscribe(Double.NaN);
+    private final DoubleSubscriber cancoderFLAbsRawSub = table.getDoubleTopic("cancoder/fl_abs_raw_rot")
+            .subscribe(Double.NaN);
+    private final DoubleSubscriber cancoderFRAbsRawSub = table.getDoubleTopic("cancoder/fr_abs_raw_rot")
+            .subscribe(Double.NaN);
+    private final DoubleSubscriber cancoderBLAbsRawSub = table.getDoubleTopic("cancoder/bl_abs_raw_rot")
+            .subscribe(Double.NaN);
+    private final DoubleSubscriber cancoderBRAbsRawSub = table.getDoubleTopic("cancoder/br_abs_raw_rot")
+            .subscribe(Double.NaN);
+    private final BooleanSubscriber cancoderFLOkSub = table.getBooleanTopic("cancoder/fl_ok").subscribe(false);
+    private final BooleanSubscriber cancoderFROkSub = table.getBooleanTopic("cancoder/fr_ok").subscribe(false);
+    private final BooleanSubscriber cancoderBLOkSub = table.getBooleanTopic("cancoder/bl_ok").subscribe(false);
+    private final BooleanSubscriber cancoderBROkSub = table.getBooleanTopic("cancoder/br_ok").subscribe(false);
 
     // Motor temperatures
     private final DoubleSubscriber driveFLTempSub = table.getDoubleTopic("temps/drive_fl_c").subscribe(0.0);
@@ -245,6 +262,19 @@ public class DashboardNtClient implements AutoCloseable {
                 cancoderFROffsetSub.get(),
                 cancoderBLOffsetSub.get(),
                 cancoderBROffsetSub.get(),
+                // CANCoder health
+                cancoderFLPosSub.get(),
+                cancoderFRPosSub.get(),
+                cancoderBLPosSub.get(),
+                cancoderBRPosSub.get(),
+                cancoderFLAbsRawSub.get(),
+                cancoderFRAbsRawSub.get(),
+                cancoderBLAbsRawSub.get(),
+                cancoderBRAbsRawSub.get(),
+                cancoderFLOkSub.get(),
+                cancoderFROkSub.get(),
+                cancoderBLOkSub.get(),
+                cancoderBROkSub.get(),
                 // Motor temps
                 driveFLTempSub.get(),
                 driveFRTempSub.get(),

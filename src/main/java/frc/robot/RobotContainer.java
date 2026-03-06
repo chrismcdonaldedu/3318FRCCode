@@ -550,6 +550,9 @@ public class RobotContainer {
         double batteryVoltage = RobotController.getBatteryVoltage();
         var canStatus = RobotController.getCANStatus();
         double[] swerveAngles = swerve.getModuleAnglesDeg();
+        double[] ccPos = swerve.getCANcoderPositionsRot();
+        double[] ccAbsRaw = swerve.getCANcoderAbsoluteRawRot();
+        boolean[] ccOk = swerve.getCANcoderOkStates();
         double[] driveTemps = swerve.getDriveTemperaturesC();
         boolean autoRunning = currentAutoCommand != null && currentAutoCommand.isScheduled();
 
@@ -605,6 +608,10 @@ public class RobotContainer {
                 canStatus.transmitErrorCount,
                 // Swerve module angles
                 swerveAngles[0], swerveAngles[1], swerveAngles[2], swerveAngles[3],
+                // CANCoder health
+                ccPos[0], ccPos[1], ccPos[2], ccPos[3],
+                ccAbsRaw[0], ccAbsRaw[1], ccAbsRaw[2], ccAbsRaw[3],
+                ccOk[0], ccOk[1], ccOk[2], ccOk[3],
                 // Motor temperatures
                 driveTemps[0], driveTemps[1], driveTemps[2], driveTemps[3],
                 shooter.getLeftTemperatureC(),
