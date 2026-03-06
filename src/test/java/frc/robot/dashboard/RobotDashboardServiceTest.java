@@ -329,6 +329,10 @@ class RobotDashboardServiceTest {
                 0,
                 // Swerve angles
                 0.0, 0.0, 0.0, 0.0,
+                // CANCoder health (pos, absRaw, ok)
+                0.0, 0.0, 0.0, 0.0,
+                0.0, 0.0, 0.0, 0.0,
+                true, true, true, true,
                 // Motor temps
                 0.0, 0.0, 0.0, 0.0,
                 0.0, 0.0,

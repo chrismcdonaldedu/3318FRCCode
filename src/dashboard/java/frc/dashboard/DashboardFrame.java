@@ -1032,6 +1032,18 @@ public class DashboardFrame extends JFrame {
                 .append(" FR=").append(formatMaybe(data.cancoderFROffsetRot()))
                 .append(" BL=").append(formatMaybe(data.cancoderBLOffsetRot()))
                 .append(" BR=").append(formatMaybe(data.cancoderBROffsetRot())).append('\n');
+        sb.append("CANcoder pos rot: FL=").append(formatMaybe(data.cancoderFLPosRot()))
+                .append(" FR=").append(formatMaybe(data.cancoderFRPosRot()))
+                .append(" BL=").append(formatMaybe(data.cancoderBLPosRot()))
+                .append(" BR=").append(formatMaybe(data.cancoderBRPosRot())).append('\n');
+        sb.append("CANcoder absRaw rot: FL=").append(formatMaybe(data.cancoderFLAbsRawRot()))
+                .append(" FR=").append(formatMaybe(data.cancoderFRAbsRawRot()))
+                .append(" BL=").append(formatMaybe(data.cancoderBLAbsRawRot()))
+                .append(" BR=").append(formatMaybe(data.cancoderBRAbsRawRot())).append('\n');
+        sb.append("CANcoder OK: FL=").append(data.cancoderFLOk())
+                .append(" FR=").append(data.cancoderFROk())
+                .append(" BL=").append(data.cancoderBLOk())
+                .append(" BR=").append(data.cancoderBROk()).append('\n');
         sb.append("Drive temps: FL=").append(ZERO_DECIMAL.format(data.driveFLTempC()))
                 .append(" FR=").append(ZERO_DECIMAL.format(data.driveFRTempC()))
                 .append(" BL=").append(ZERO_DECIMAL.format(data.driveBLTempC()))
@@ -1138,7 +1150,10 @@ public class DashboardFrame extends JFrame {
                 data.swerveFLAngleDeg(),
                 data.driveFLTempC(),
                 data.cancoderFLRawRot(),
-                data.cancoderFLOffsetRot());
+                data.cancoderFLOffsetRot(),
+                data.cancoderFLPosRot(),
+                data.cancoderFLAbsRawRot(),
+                data.cancoderFLOk());
         appendSwerveModule(
                 sb,
                 connected,
@@ -1150,7 +1165,10 @@ public class DashboardFrame extends JFrame {
                 data.swerveFRAngleDeg(),
                 data.driveFRTempC(),
                 data.cancoderFRRawRot(),
-                data.cancoderFROffsetRot());
+                data.cancoderFROffsetRot(),
+                data.cancoderFRPosRot(),
+                data.cancoderFRAbsRawRot(),
+                data.cancoderFROk());
         appendSwerveModule(
                 sb,
                 connected,
@@ -1162,7 +1180,10 @@ public class DashboardFrame extends JFrame {
                 data.swerveBLAngleDeg(),
                 data.driveBLTempC(),
                 data.cancoderBLRawRot(),
-                data.cancoderBLOffsetRot());
+                data.cancoderBLOffsetRot(),
+                data.cancoderBLPosRot(),
+                data.cancoderBLAbsRawRot(),
+                data.cancoderBLOk());
         appendSwerveModule(
                 sb,
                 connected,
@@ -1174,7 +1195,10 @@ public class DashboardFrame extends JFrame {
                 data.swerveBRAngleDeg(),
                 data.driveBRTempC(),
                 data.cancoderBRRawRot(),
-                data.cancoderBROffsetRot());
+                data.cancoderBROffsetRot(),
+                data.cancoderBRPosRot(),
+                data.cancoderBRAbsRawRot(),
+                data.cancoderBROk());
         sb.append('\n');
 
         sb.append("[Shooter]\n");
@@ -1250,7 +1274,10 @@ public class DashboardFrame extends JFrame {
             double moduleAngleDeg,
             double driveTempC,
             double cancoderRawRot,
-            double cancoderOffsetRot) {
+            double cancoderOffsetRot,
+            double cancoderPosRot,
+            double cancoderAbsRawRot,
+            boolean cancoderOk) {
         appendDeviceLine(
                 sb,
                 statusFromTemp(connected, liveTelemetry, driveTempC),
@@ -1261,12 +1288,18 @@ public class DashboardFrame extends JFrame {
                 statusFromBoolean(connected, liveTelemetry, Double.isFinite(moduleAngleDeg), "CHECK"),
                 name + " Steer TalonFX (CAN " + steerCanId + ")",
                 "moduleAngle=" + formatMaybe(moduleAngleDeg) + " deg");
+        String cancoderStatus = cancoderOk
+                ? statusFromBoolean(connected, liveTelemetry, true, "CHECK")
+                : (connected && liveTelemetry ? "ERROR" : statusFromBoolean(connected, liveTelemetry, false, "CHECK"));
         appendDeviceLine(
                 sb,
-                statusFromBoolean(connected, liveTelemetry, Double.isFinite(cancoderRawRot), "CHECK"),
+                cancoderStatus,
                 name + " CANcoder (CAN " + cancoderCanId + ")",
-                "rawRot=" + formatMaybe(cancoderRawRot)
-                        + " offsetRot=" + formatMaybe(cancoderOffsetRot));
+                "pos=" + formatMaybe(cancoderPosRot)
+                        + " absRaw=" + formatMaybe(cancoderAbsRawRot)
+                        + " calRaw=" + formatMaybe(cancoderRawRot)
+                        + " offset=" + formatMaybe(cancoderOffsetRot)
+                        + " ok=" + cancoderOk);
     }
 
     private static void appendDeviceLine(StringBuilder sb, String status, String name, String details) {

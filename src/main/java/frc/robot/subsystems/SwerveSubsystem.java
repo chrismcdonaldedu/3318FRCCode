@@ -274,6 +274,33 @@ public class SwerveSubsystem extends SubsystemBase {
         };
     }
 
+    public double[] getCANcoderPositionsRot() {
+        return new double[] {
+            frontLeft.getCANcoderPositionRot(),
+            frontRight.getCANcoderPositionRot(),
+            backLeft.getCANcoderPositionRot(),
+            backRight.getCANcoderPositionRot()
+        };
+    }
+
+    public double[] getCANcoderAbsoluteRawRot() {
+        return new double[] {
+            frontLeft.getCANcoderAbsoluteRaw(),
+            frontRight.getCANcoderAbsoluteRaw(),
+            backLeft.getCANcoderAbsoluteRaw(),
+            backRight.getCANcoderAbsoluteRaw()
+        };
+    }
+
+    public boolean[] getCANcoderOkStates() {
+        return new boolean[] {
+            frontLeft.isCANcoderOk(),
+            frontRight.isCANcoderOk(),
+            backLeft.isCANcoderOk(),
+            backRight.isCANcoderOk()
+        };
+    }
+
     /**
      * Returns whether the vision thread is producing results.
      * A result less than 2 seconds old means the camera is connected and working.
