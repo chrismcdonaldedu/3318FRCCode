@@ -162,6 +162,10 @@ public final class Constants {
         // Falcon 500 free speed = 6380 RPM = 106.33 RPS at 12V
         public static final double DRIVE_MOTOR_FREE_SPEED_RPS = 6380.0 / 60.0;
 
+        // Phoenix Pro unlocks CTRE's fused sensor mode for steer feedback.
+        // Leave false unless this robot's CTRE devices are actually licensed.
+        public static final boolean USE_PHOENIX_PRO_FEATURES = false;
+
         // ---- Module wheel locations (relative to robot center) ----
         // WPILib uses +X = forward, +Y = left
         public static final Translation2d FRONT_LEFT_LOCATION  =
@@ -184,10 +188,23 @@ public final class Constants {
         // CALIBRATE BEFORE DRIVING! These MUST be set per-robot.
         // Use the "CalibrateCANcoders" auto in SmartDashboard to print current
         // raw readings — then negate and paste here.
-        public static final double FL_CANCODER_OFFSET_ROT = 0.0;  // CALIBRATE ME
-        public static final double FR_CANCODER_OFFSET_ROT = 0.0;  // CALIBRATE ME
-        public static final double BL_CANCODER_OFFSET_ROT = 0.0;  // CALIBRATE ME
-        public static final double BR_CANCODER_OFFSET_ROT = 0.0;  // CALIBRATE ME
+        public static final double FL_CANCODER_OFFSET_ROT = -0.364258;  // CALIBRATE ME
+        public static final double FR_CANCODER_OFFSET_ROT = -0.364258;  // CALIBRATE ME
+        public static final double BL_CANCODER_OFFSET_ROT = -0.362305;  // CALIBRATE ME
+        public static final double BR_CANCODER_OFFSET_ROT = -0.197266;  // CALIBRATE ME
+
+        // ---- Motor inversion ----
+        // Keep these explicit per module so wiring / gearbox swaps do not require code spelunking.
+        // One wrong inversion here can make the module "fight itself" and chatter at enable.
+        public static final boolean FL_DRIVE_INVERTED = false;
+        public static final boolean FR_DRIVE_INVERTED = false;
+        public static final boolean BL_DRIVE_INVERTED = false;
+        public static final boolean BR_DRIVE_INVERTED = false;
+
+        public static final boolean FL_STEER_INVERTED = false;
+        public static final boolean FR_STEER_INVERTED = false;
+        public static final boolean BL_STEER_INVERTED = false;
+        public static final boolean BR_STEER_INVERTED = false;
 
         // ---- Drive motor PID (VelocityVoltage, Phoenix 6) ----
         // Source: CTRE official Phoenix 6 TunerConstants.java (driveGains).
@@ -200,18 +217,18 @@ public final class Constants {
         public static final double DRIVE_kV = 0.124;   // V/RPS (CTRE default for Falcon 500)
         public static final double DRIVE_kP = 0.1;     // V/RPS error (CTRE default)
 
-        // ---- Steer motor PID (PositionVoltage + FusedCANcoder, Phoenix 6) ----
+        // ---- Steer motor PID (PositionVoltage + CANcoder feedback, Phoenix 6) ----
         // Source: CTRE official Phoenix 6 TunerConstants.java (steerGains).
-        // These values are tuned for Phoenix Pro + FusedCANcoder feedback.
-        // kP = 100 V/rotation — modules snap to target angle quickly.
-        // kD = 0.5 — damping prevents oscillation around the setpoint.
-        // kS = 0.1 — overcomes static friction in the steer gearbox.
-        // kV = 1.91 — feedforward for the steer motor velocity.
-        // If NOT using Phoenix Pro (using Phoenix 6 non-Pro), reduce kP to ~50.
-        public static final double STEER_kP = 100.0;   // V/rotation (CTRE Phoenix Pro default)
-        public static final double STEER_kD = 0.5;     // V/(rotation/sec) (CTRE default)
-        public static final double STEER_kS = 0.1;     // Volts (CTRE default)
-        public static final double STEER_kV = 1.91;    // V/RPS (CTRE default)
+        // Phoenix Pro's FusedCANcoder tolerates a more aggressive kP than
+        // Phoenix 6 non-Pro RemoteCANcoder. Select the gain set automatically
+        // from USE_PHOENIX_PRO_FEATURES so the robot doesn't run Pro tuning
+        // while Pro is disabled.
+        public static final double STEER_kP_PRO = 100.0;       // V/rotation
+        public static final double STEER_kP_NON_PRO = 50.0;    // safer starting point for RemoteCANcoder
+        public static final double STEER_kD_PRO = 0.5;         // V/(rotation/sec)
+        public static final double STEER_kD_NON_PRO = 0.3;     // a bit less aggressive with slower feedback
+        public static final double STEER_kS = 0.1;             // Volts
+        public static final double STEER_kV = 1.91;            // V/RPS
 
         // ---- Joystick deadband ----
         // Joystick axes within this range of zero are treated as zero.

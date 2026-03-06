@@ -45,6 +45,8 @@ public class SwerveSubsystem extends SubsystemBase {
             Constants.CAN.FRONT_LEFT_STEER,
             Constants.CAN.FRONT_LEFT_CANCODER,
             Constants.Swerve.FL_CANCODER_OFFSET_ROT,
+            Constants.Swerve.FL_DRIVE_INVERTED,
+            Constants.Swerve.FL_STEER_INVERTED,
             "FL");
 
     private final SwerveModule frontRight = new SwerveModule(
@@ -52,6 +54,8 @@ public class SwerveSubsystem extends SubsystemBase {
             Constants.CAN.FRONT_RIGHT_STEER,
             Constants.CAN.FRONT_RIGHT_CANCODER,
             Constants.Swerve.FR_CANCODER_OFFSET_ROT,
+            Constants.Swerve.FR_DRIVE_INVERTED,
+            Constants.Swerve.FR_STEER_INVERTED,
             "FR");
 
     private final SwerveModule backLeft = new SwerveModule(
@@ -59,6 +63,8 @@ public class SwerveSubsystem extends SubsystemBase {
             Constants.CAN.BACK_LEFT_STEER,
             Constants.CAN.BACK_LEFT_CANCODER,
             Constants.Swerve.BL_CANCODER_OFFSET_ROT,
+            Constants.Swerve.BL_DRIVE_INVERTED,
+            Constants.Swerve.BL_STEER_INVERTED,
             "BL");
 
     private final SwerveModule backRight = new SwerveModule(
@@ -66,6 +72,8 @@ public class SwerveSubsystem extends SubsystemBase {
             Constants.CAN.BACK_RIGHT_STEER,
             Constants.CAN.BACK_RIGHT_CANCODER,
             Constants.Swerve.BR_CANCODER_OFFSET_ROT,
+            Constants.Swerve.BR_DRIVE_INVERTED,
+            Constants.Swerve.BR_STEER_INVERTED,
             "BR");
 
     // ---- Gyro (Pigeon 2) ----
