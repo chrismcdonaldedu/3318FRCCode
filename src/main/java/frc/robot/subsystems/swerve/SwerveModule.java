@@ -28,6 +28,7 @@ import com.ctre.phoenix6.controls.PositionVoltage;
 import com.ctre.phoenix6.hardware.CANcoder;
 import com.ctre.phoenix6.hardware.TalonFX;
 import com.ctre.phoenix6.signals.FeedbackSensorSourceValue;
+import com.ctre.phoenix6.signals.InvertedValue;
 import com.ctre.phoenix6.signals.NeutralModeValue;
 import com.ctre.phoenix6.signals.SensorDirectionValue;
 
@@ -38,9 +39,6 @@ import edu.wpi.first.math.kinematics.SwerveModuleState;
 import frc.robot.Constants;
 
 public class SwerveModule {
-    // Set true only if Phoenix Pro is licensed on all required devices.
-    private static final boolean USE_PHOENIX_PRO_FEATURES = false;
-
     // Max retries when applying device configuration over CAN
     private static final int CONFIG_APPLY_RETRIES = 5;
 
@@ -66,11 +64,11 @@ public class SwerveModule {
     // Reusable control request objects — avoids creating garbage every loop
     // VelocityVoltage: tells the drive motor "spin at exactly X rotations/sec"
     private final VelocityVoltage driveRequest = new VelocityVoltage(0)
-            .withEnableFOC(USE_PHOENIX_PRO_FEATURES);
+            .withEnableFOC(Constants.Swerve.USE_PHOENIX_PRO_FEATURES);
 
     // PositionVoltage: tells the steer motor "go to exactly this angle"
     private final PositionVoltage steerRequest = new PositionVoltage(0)
-            .withEnableFOC(USE_PHOENIX_PRO_FEATURES);
+            .withEnableFOC(Constants.Swerve.USE_PHOENIX_PRO_FEATURES);
 
     // --------------------------------------------------------------------------
     // Constructor
@@ -81,10 +79,15 @@ public class SwerveModule {
     //   cancoderId     - CAN ID of the CANcoder on this corner
     //   cancoderOffsetRot - The offset (in rotations) to make "0" = forward
     //                       Find this in Phoenix Tuner X (see Constants.java notes)
+    //   driveInverted  - true if positive drive command spins the wheel backward
+    //   steerInverted  - true if positive steer command moves opposite the CANcoder
     //   moduleName     - Human-readable name for diagnostics (e.g. "FL")
     // --------------------------------------------------------------------------
     public SwerveModule(int driveId, int steerId, int cancoderId,
-                        double cancoderOffsetRot, String moduleName) {
+                        double cancoderOffsetRot,
+                        boolean driveInverted,
+                        boolean steerInverted,
+                        String moduleName) {
 
         this.name = moduleName;
 
@@ -104,6 +107,7 @@ public class SwerveModule {
         // ---- Configure the DRIVE motor -------------------------------------
         TalonFXConfiguration driveCfg = new TalonFXConfiguration();
         driveCfg.MotorOutput.NeutralMode = NeutralModeValue.Brake;
+        driveCfg.MotorOutput.Inverted = invertedValue(driveInverted);
         driveCfg.CurrentLimits.StatorCurrentLimit       = 60;
         driveCfg.CurrentLimits.StatorCurrentLimitEnable = true;
         driveCfg.CurrentLimits.SupplyCurrentLimit       = 40;
@@ -117,17 +121,22 @@ public class SwerveModule {
         // ---- Configure the STEER motor ------------------------------------
         TalonFXConfiguration steerCfg = new TalonFXConfiguration();
         steerCfg.MotorOutput.NeutralMode = NeutralModeValue.Brake;
+        steerCfg.MotorOutput.Inverted = invertedValue(steerInverted);
         steerCfg.CurrentLimits.StatorCurrentLimit       = 40;
         steerCfg.CurrentLimits.StatorCurrentLimitEnable = true;
         steerCfg.Feedback.FeedbackRemoteSensorID  = cancoderId;
-        steerCfg.Feedback.FeedbackSensorSource = USE_PHOENIX_PRO_FEATURES
+        steerCfg.Feedback.FeedbackSensorSource = Constants.Swerve.USE_PHOENIX_PRO_FEATURES
                 ? FeedbackSensorSourceValue.FusedCANcoder
                 : FeedbackSensorSourceValue.RemoteCANcoder;
         steerCfg.Feedback.SensorToMechanismRatio  = 1.0;
         steerCfg.Feedback.RotorToSensorRatio      = Constants.Swerve.STEER_GEAR_RATIO;
         steerCfg.ClosedLoopGeneral.ContinuousWrap = true;
-        steerCfg.Slot0.kP = Constants.Swerve.STEER_kP;
-        steerCfg.Slot0.kD = Constants.Swerve.STEER_kD;
+        steerCfg.Slot0.kP = Constants.Swerve.USE_PHOENIX_PRO_FEATURES
+                ? Constants.Swerve.STEER_kP_PRO
+                : Constants.Swerve.STEER_kP_NON_PRO;
+        steerCfg.Slot0.kD = Constants.Swerve.USE_PHOENIX_PRO_FEATURES
+                ? Constants.Swerve.STEER_kD_PRO
+                : Constants.Swerve.STEER_kD_NON_PRO;
         steerCfg.Slot0.kS = Constants.Swerve.STEER_kS;
         steerCfg.Slot0.kV = Constants.Swerve.STEER_kV;
         applyWithRetry(() -> steerMotor.getConfigurator().apply(steerCfg),
@@ -270,5 +279,11 @@ public class SwerveModule {
         System.err.println("[SwerveModule] ERROR: " + action + " failed after "
                 + CONFIG_APPLY_RETRIES + " attempts. Last status: " + lastCode.getName()
                 + ". Module may be degraded.");
+    }
+
+    private static InvertedValue invertedValue(boolean inverted) {
+        return inverted
+                ? InvertedValue.Clockwise_Positive
+                : InvertedValue.CounterClockwise_Positive;
     }
 }

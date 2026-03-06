@@ -63,6 +63,7 @@ public class DashboardFrame extends JFrame {
 
     private static final DecimalFormat ONE_DECIMAL = new DecimalFormat("0.0");
     private static final DecimalFormat ZERO_DECIMAL = new DecimalFormat("0");
+    private static final DecimalFormat ROTATION_DECIMAL = new DecimalFormat("0.000000");
     private static final DateTimeFormatter LOG_TIME_FORMAT = DateTimeFormatter.ofPattern("HH:mm:ss");
     private static final int MAX_EVENT_LINES = 70;
     private static final int MAX_CONTROL_EVENT_LINES = 140;
@@ -1400,10 +1401,10 @@ public class DashboardFrame extends JFrame {
                 sb,
                 cancoderStatus,
                 name + " CANcoder (CAN " + cancoderCanId + ")",
-                "pos=" + formatMaybe(cancoderPosRot)
-                        + " absRaw=" + formatMaybe(cancoderAbsRawRot)
-                        + " calRaw=" + formatMaybe(cancoderRawRot)
-                        + " offset=" + formatMaybe(cancoderOffsetRot)
+                "pos=" + formatRotationMaybe(cancoderPosRot)
+                        + " absRaw=" + formatRotationMaybe(cancoderAbsRawRot)
+                        + " calRaw=" + formatRotationMaybe(cancoderRawRot)
+                        + " offset=" + formatRotationMaybe(cancoderOffsetRot)
                         + " ok=" + cancoderOk);
     }
 
@@ -1464,6 +1465,10 @@ public class DashboardFrame extends JFrame {
 
     private static String formatMaybe(double value) {
         return Double.isFinite(value) ? ONE_DECIMAL.format(value) : "--";
+    }
+
+    private static String formatRotationMaybe(double value) {
+        return Double.isFinite(value) ? ROTATION_DECIMAL.format(value) : "--";
     }
 
     private static String yesNo(boolean value) {
