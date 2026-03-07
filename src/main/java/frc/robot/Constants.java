@@ -460,8 +460,8 @@ public final class Constants {
         // ---- Camera mount position ----
         // Used for pitch-based distance estimation.
         // TUNE ME: Measure the actual camera mount position on your robot!
-        public static final double CAMERA_UP_M       = 0.50;  // TUNE ME
-        public static final double CAMERA_PITCH_RAD  = Math.toRadians(-15.0); // tilted down, TUNE ME
+        public static final double CAMERA_UP_M       = 16.5;  // TUNE ME
+        public static final double CAMERA_PITCH_RAD  = Math.toRadians(20.1); // tilted down, TUNE ME
 
         // ---- Alliance-specific HUB tag IDs for targeting ----
         // AlignAndShootCommand should ONLY aim at your alliance's HUB tags.
