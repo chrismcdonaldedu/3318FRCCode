@@ -196,10 +196,15 @@ public final class Constants {
         // raw readings — then negate and paste here.
         // Values from CTRE Tuner X calibration (TunerConstants).
         // Re-run CalibrateCANcodersCommand if wheels have been removed/reinstalled.
-        public static final double FL_CANCODER_OFFSET_ROT = -0.35888671875;
-        public static final double FR_CANCODER_OFFSET_ROT =  0.197021484375;
-        public static final double BL_CANCODER_OFFSET_ROT = -0.03271484375;
-        public static final double BR_CANCODER_OFFSET_ROT =  0.36474609375;
+        //public static final double FL_CANCODER_OFFSET_ROT = -0.35888671875;
+        //public static final double FR_CANCODER_OFFSET_ROT =  0.197021484375;
+        //public static final double BL_CANCODER_OFFSET_ROT = -0.03271484375;
+        //public static final double BR_CANCODER_OFFSET_ROT =  0.36474609375;
+
+        public static final double FL_CANCODER_OFFSET_ROT = -0.368408;
+        public static final double FR_CANCODER_OFFSET_ROT =  0.198730;
+        public static final double BL_CANCODER_OFFSET_ROT = -0.017578;
+        public static final double BR_CANCODER_OFFSET_ROT =  0.371826;
 
         // ---- CANcoder direction ----
         // Calibration only sets the zero point. If a module runs away while
