@@ -4,11 +4,10 @@
 // PURPOSE: Rotates the robot to aim at a vision target, then fires.
 //
 // SEQUENCE:
-//   1. SPIN UP  — Start shooter wheels spinning to target speed
-//   2. ALIGN    — Rotate robot until vision target is centered in camera
-//   3. CLEAR    — Brief feeder reverse to prevent double-feeding
-//   4. FEED     — Push game piece through feeder + hopper + intake roller
-//   5. DONE     — Command finishes, everything stops
+//   1. ALIGN    — Start shooter wheels AND rotate toward vision target simultaneously
+//   2. CLEAR    — Brief feeder reverse to prevent double-feeding (with active alignment)
+//   3. FEED     — Push game piece through feeder + hopper + intake roller (committed, no abort)
+//   4. DONE     — Command finishes, everything stops
 //
 // VISION SOURCE: Reads VisionResult from the background RioVisionThread via
 //   an AtomicReference.  No PhotonVision dependency.
@@ -60,7 +59,7 @@ public class AlignAndShootCommand extends Command {
             Constants.Vision.TURN_kD);
 
     // ---- State machine ----
-    private enum State { SPIN_UP, ALIGN, CLEAR, FEED, DONE }
+    private enum State { ALIGN, CLEAR, FEED, DONE }
     private State state;
 
     private final Timer stateTimer = new Timer();
@@ -97,11 +96,11 @@ public class AlignAndShootCommand extends Command {
     // --------------------------------------------------------------------------
     @Override
     public void initialize() {
-        state = State.SPIN_UP;
+        state = State.ALIGN;
         stateTimer.reset();
         stateTimer.start();
         lastValidTargetSeenSec = Double.NEGATIVE_INFINITY;
-        telemetryState = State.SPIN_UP.name();
+        telemetryState = State.ALIGN.name();
         telemetryCommandActive = true;
         telemetryHasTarget = false;
         telemetryGeometryFeasible = false;
@@ -121,7 +120,7 @@ public class AlignAndShootCommand extends Command {
         calculatedRPS = Constants.Shooter.TARGET_RPS;
         telemetryTargetRps = calculatedRPS;
         shooter.setShooterVelocity(calculatedRPS);
-        SmartDashboard.putString("AlignShoot/State", "SPIN_UP");
+        SmartDashboard.putString("AlignShoot/State", "ALIGN");
     }
 
     // --------------------------------------------------------------------------
@@ -130,15 +129,6 @@ public class AlignAndShootCommand extends Command {
     @Override
     public void execute() {
         switch (state) {
-
-            case SPIN_UP: {
-                swerve.drive(0, 0, 0, false);
-                if (shooter.isAtSpeed(calculatedRPS)
-                        || stateTimer.hasElapsed(Constants.Shooter.AT_SPEED_TIMEOUT_SEC)) {
-                    transitionTo(State.ALIGN);
-                }
-                break;
-            }
 
             case ALIGN: {
                 VisionResult result = visionRef.get();
@@ -171,27 +161,9 @@ public class AlignAndShootCommand extends Command {
                 telemetryHasShootableTarget = true;
                 telemetryGeometryFeasible = true;
 
-                double yawDeg = result.yawDeg();
-                SmartDashboard.putNumber("AlignShoot/YawError", yawDeg);
-                SmartDashboard.putNumber("AlignShoot/TargetTagId", result.tagId());
-                telemetryYawDeg = yawDeg;
+                updateShooterFromVision(result);
 
-                // Distance estimation: prefer pixel-height method, fall back to pitch
-                double distanceM = result.estimateDistanceM(
-                        Constants.Vision.TAG_HEIGHT_M,
-                        Constants.Vision.FOCAL_LENGTH_PIXELS);
-                if (!Double.isFinite(distanceM) || distanceM <= 0) {
-                    distanceM = estimateDistanceFromPitch(result.pitchDeg());
-                }
-                calculatedRPS = ShooterSubsystem.calculateTargetRPS(distanceM);
-                telemetryTargetRps = calculatedRPS;
-                shooter.setShooterVelocity(calculatedRPS);
-                SmartDashboard.putNumber("AlignShoot/CalculatedRPS", calculatedRPS);
-                SmartDashboard.putNumber("AlignShoot/EstDistanceM", distanceM);
-
-                double rotCmd = turnPID.calculate(yawDeg, 0);
-                rotCmd = MathUtil.clamp(rotCmd,
-                        -Constants.Vision.MAX_ROT_CMD, Constants.Vision.MAX_ROT_CMD);
+                double rotCmd = calculateAlignmentRotation(result);
 
                 if (turnPID.atSetpoint() && shooter.isAtSpeed(calculatedRPS)) {
                     swerve.drive(0, 0, 0, false);
@@ -211,6 +183,8 @@ public class AlignAndShootCommand extends Command {
                     transitionTo(State.DONE);
                     break;
                 }
+                // Maintain alignment while clearing
+                alignIfVisionAvailable();
                 feeder.setPower(Constants.Shooter.CLEAR_POWER);
                 if (stateTimer.hasElapsed(Constants.Shooter.CLEAR_TIME_SEC)) {
                     feeder.stop();
@@ -220,12 +194,8 @@ public class AlignAndShootCommand extends Command {
             }
 
             case FEED: {
-                if (!hasShootableTarget()) {
-                    System.out.println("[AlignAndShoot] Vision lost or geometry invalid during feed, aborting.");
-                    telemetryLastAbortReason = "Vision lost during feed";
-                    transitionTo(State.DONE);
-                    break;
-                }
+                // Once committed to feeding, finish the feed to avoid jamming.
+                // A game piece partially in the shooter must be pushed through.
                 feeder.setPower(Constants.Shooter.FEED_POWER);
                 hopper.setPower(Constants.Shooter.FEED_POWER);
                 intake.setRollerPower(Constants.Shooter.FEED_POWER);
@@ -275,12 +245,52 @@ public class AlignAndShootCommand extends Command {
         SmartDashboard.putString("AlignShoot/State", newState.toString());
     }
 
+    /** Update shooter velocity from the current vision result. */
+    private void updateShooterFromVision(VisionResult result) {
+        double yawDeg = result.yawDeg();
+        SmartDashboard.putNumber("AlignShoot/YawError", yawDeg);
+        SmartDashboard.putNumber("AlignShoot/TargetTagId", result.tagId());
+        telemetryYawDeg = yawDeg;
+
+        double distanceM = result.estimateDistanceM(
+                Constants.Vision.TAG_HEIGHT_M,
+                Constants.Vision.FOCAL_LENGTH_PIXELS);
+        if (!Double.isFinite(distanceM) || distanceM <= 0) {
+            distanceM = estimateDistanceFromPitch(result.pitchDeg());
+        }
+        calculatedRPS = ShooterSubsystem.calculateTargetRPS(distanceM);
+        telemetryTargetRps = calculatedRPS;
+        shooter.setShooterVelocity(calculatedRPS);
+        SmartDashboard.putNumber("AlignShoot/CalculatedRPS", calculatedRPS);
+        SmartDashboard.putNumber("AlignShoot/EstDistanceM", distanceM);
+    }
+
+    /** Calculate the rotation command to align toward the vision target. */
+    private double calculateAlignmentRotation(VisionResult result) {
+        double yawDeg = result.yawDeg();
+        double rotCmd = turnPID.calculate(yawDeg, 0);
+        return MathUtil.clamp(rotCmd,
+                -Constants.Vision.MAX_ROT_CMD, Constants.Vision.MAX_ROT_CMD);
+    }
+
+    /** Actively align toward the target if vision data is available. */
+    private void alignIfVisionAvailable() {
+        VisionResult result = visionRef.get();
+        if (isResultFresh(result)) {
+            double rotCmd = calculateAlignmentRotation(result);
+            if (!turnPID.atSetpoint()) {
+                swerve.drive(0, 0, rotCmd, false);
+                return;
+            }
+        }
+        swerve.drive(0, 0, 0, false);
+    }
+
     /** Check if a VisionResult is recent enough to use (not stale). */
     private boolean isResultFresh(VisionResult result) {
         if (result == null || result.tagId() < 0) return false;
         double age = Timer.getFPGATimestamp() - result.timestampSec();
-        // Accept results up to 0.5 s old (accounts for lower frame rate)
-        return age < Constants.Vision.TARGET_LOSS_TOLERANCE_SEC + 0.15;
+        return age < Constants.Vision.TARGET_LOSS_TOLERANCE_SEC;
     }
 
     private boolean hasShootableTarget() {
@@ -300,8 +310,9 @@ public class AlignAndShootCommand extends Command {
             return false;
         }
         telemetryGeometryFeasible = false;
-        telemetryHasShootableTarget = hasRecentValidTarget();
-        return hasRecentValidTarget();
+        boolean recent = hasRecentValidTarget();
+        telemetryHasShootableTarget = recent;
+        return recent;
     }
 
     private boolean hasRecentValidTarget() {

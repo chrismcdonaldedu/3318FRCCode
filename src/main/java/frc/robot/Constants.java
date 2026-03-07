@@ -300,7 +300,7 @@ public final class Constants {
         public static final double MIN_SHOT_RPS = 20.0;
         public static final double MAX_SHOT_RPS = 90.0;
 
-        // Default warmup speed used during SPIN_UP before distance is known.
+        // Default warmup speed used during initial spinup before distance is known.
         // Also used as fallback if the distance calculation fails.
         public static final double TARGET_RPS = 60.0;  // TUNE ME
         // Driver override speed when shooting without alignment/vision checks.

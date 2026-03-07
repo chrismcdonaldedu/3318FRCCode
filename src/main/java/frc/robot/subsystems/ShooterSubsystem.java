@@ -223,6 +223,19 @@ public class ShooterSubsystem extends SubsystemBase {
                 Commands.waitUntil(() -> isAtSpeed(targetRPS))
                         .withTimeout(Constants.Shooter.AT_SPEED_TIMEOUT_SEC),
 
+                // Log if we timed out without reaching target speed
+                Commands.runOnce(() -> {
+                    if (!isAtSpeed(targetRPS)) {
+                        System.out.println("[ShootRoutine] WARNING: Feeding at "
+                                + String.format("%.1f", Math.abs(getLeftRPS()))
+                                + "/" + String.format("%.1f", Math.abs(getRightRPS()))
+                                + " RPS, target was " + String.format("%.1f", targetRPS));
+                        SmartDashboard.putBoolean("Shooter/FedBelowSpeed", true);
+                    } else {
+                        SmartDashboard.putBoolean("Shooter/FedBelowSpeed", false);
+                    }
+                }),
+
                 // Step 4: Feed the game piece — run all three feed mechanisms together
                 Commands.parallel(
                         Commands.run(() -> feeder.setPower(Constants.Shooter.FEED_POWER), feeder),
