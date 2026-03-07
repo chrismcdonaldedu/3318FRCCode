@@ -81,7 +81,8 @@ public class RobotContainer {
     private final HopperSubsystem  hopper  = new HopperSubsystem();
     private final FeederSubsystem  feeder  = new FeederSubsystem();
     private final ShooterSubsystem shooter = new ShooterSubsystem();
-    private final ClimberSubsystem climber = new ClimberSubsystem();
+    // --- CLIMBER DISABLED: no climber hardware installed ---
+    // private final ClimberSubsystem climber = new ClimberSubsystem();
 
     // =========================================================================
     // CONTROLLERS
@@ -112,9 +113,10 @@ public class RobotContainer {
     private String controlEventMessage = "";
     private String driverCommandSummary = "drive idle";
     private String operatorCommandSummary = "operator idle";
-    private double lastClimberPower = 0.0;
+    // --- CLIMBER DISABLED ---
+    // private double lastClimberPower = 0.0;
     private double lastHopperPower = 0.0;
-    private boolean lastClimbArmed = false;
+    // private boolean lastClimbArmed = false;
     private Command currentSwerveValidationCommand;
 
     // =========================================================================
@@ -312,10 +314,11 @@ public class RobotContainer {
         NamedCommands.registerCommand("AutoShoot",
                 buildAlignAndShootCommand().withTimeout(Constants.Auto.AUTO_SHOOT_TIMEOUT_SEC));
 
+        // --- CLIMBER DISABLED ---
         // Level1Climb: automatically extends climber to Level 1 height.
         // In REBUILT, Level 1 climb is worth 15 pts in auto (max 2 robots).
-        NamedCommands.registerCommand("Level1Climb",
-                Commands.runOnce(climber::autoClimbLevel1, climber));
+        // NamedCommands.registerCommand("Level1Climb",
+        //         Commands.runOnce(climber::autoClimbLevel1, climber));
     }
 
     // =========================================================================
@@ -482,21 +485,22 @@ public class RobotContainer {
 
         // ---- OPERATOR CONTROLLER BINDINGS ----
 
+        // --- CLIMBER DISABLED: manual climber control commented out ---
         // Right stick Y: Manual climber control
         // Safety gate: climber only moves while BOTH Start + Back are held.
-        climber.setDefaultCommand(
-                Commands.run(() -> {
-                    boolean climbArmed = operatorController.start().getAsBoolean()
-                            && operatorController.back().getAsBoolean();
-                    double climbPower = climbArmed
-                            ? MathUtil.applyDeadband(-operatorController.getRightY(), 0.1)
-                            : 0.0;
-                    climber.setWinchPower(climbPower);
-
-                    lastClimbArmed = climbArmed;
-                    lastClimberPower = climbPower;
-                    refreshOperatorCommandSummary();
-                }, climber).withName("OperatorClimberManualDefault"));
+        // climber.setDefaultCommand(
+        //         Commands.run(() -> {
+        //             boolean climbArmed = operatorController.start().getAsBoolean()
+        //                     && operatorController.back().getAsBoolean();
+        //             double climbPower = climbArmed
+        //                     ? MathUtil.applyDeadband(-operatorController.getRightY(), 0.1)
+        //                     : 0.0;
+        //             climber.setWinchPower(climbPower);
+        //
+        //             lastClimbArmed = climbArmed;
+        //             lastClimberPower = climbPower;
+        //             refreshOperatorCommandSummary();
+        //         }, climber).withName("OperatorClimberManualDefault"));
 
         // Left stick Y: Manual hopper control
         // Lets the operator nudge game pieces if they get stuck
@@ -510,23 +514,22 @@ public class RobotContainer {
                     refreshOperatorCommandSummary();
                 }, hopper).withName("OperatorHopperManualDefault"));
 
+        // --- CLIMBER DISABLED: A button (auto climb) and B button (climber stop) commented out ---
         // A button: Automatic Level 1 climb (requires climb gate held)
-        // Uses a sustained command so the default manual climber command does not
-        // immediately overwrite the position request.
-        operatorController.a()
-                .and(operatorController.start())
-                .and(operatorController.back())
-                .onTrue(
-                        Commands.sequence(
-                                Commands.runOnce(() -> logControlEvent("Operator:A+Start+Back", "Level1 climb requested")),
-                                buildLevel1ClimbCommand()));
-
-        // B button: Stop climber immediately
-        operatorController.b().onTrue(
-                Commands.runOnce(() -> {
-                    logControlEvent("Operator:B", "climber.stop()");
-                    climber.stop();
-                }, climber));
+        // operatorController.a()
+        //         .and(operatorController.start())
+        //         .and(operatorController.back())
+        //         .onTrue(
+        //                 Commands.sequence(
+        //                         Commands.runOnce(() -> logControlEvent("Operator:A+Start+Back", "Level1 climb requested")),
+        //                         buildLevel1ClimbCommand()));
+        //
+        // // B button: Stop climber immediately
+        // operatorController.b().onTrue(
+        //         Commands.runOnce(() -> {
+        //             logControlEvent("Operator:B", "climber.stop()");
+        //             climber.stop();
+        //         }, climber));
 
         // Right Trigger: Vision-required align-and-shoot (operator controls scoring).
         operatorController.rightTrigger().onTrue(
@@ -672,9 +675,10 @@ public class RobotContainer {
                 intake.getRollerCurrentAmps(),
                 feeder.getCurrentAmps(),
                 hopper.getCurrentAmps(),
-                isClimberArmed(),
-                climber.getWinchPositionRot(),
-                climber.getCurrentAmps(),
+                // --- CLIMBER DISABLED: passing defaults ---
+                false, // isClimberArmed()
+                0.0,   // climber.getWinchPositionRot()
+                0.0,   // climber.getCurrentAmps()
                 AlignAndShootCommand.getTelemetryState(),
                 AlignAndShootCommand.isTelemetryCommandActive(),
                 AlignAndShootCommand.telemetryHasTarget(),
@@ -816,12 +820,14 @@ public class RobotContainer {
     }
 
     private void scheduleLevel1Climb() {
-        if (!DriverStation.isTeleopEnabled() || !isClimberArmed()) {
-            logControlEvent("Dashboard", "scheduleLevel1Climb() rejected: teleop+arm gate required");
-            return;
-        }
-        logControlEvent("Dashboard", "scheduleLevel1Climb()");
-        CommandScheduler.getInstance().schedule(buildLevel1ClimbCommand());
+        // --- CLIMBER DISABLED ---
+        // if (!DriverStation.isTeleopEnabled() || !isClimberArmed()) {
+        //     logControlEvent("Dashboard", "scheduleLevel1Climb() rejected: teleop+arm gate required");
+        //     return;
+        // }
+        // logControlEvent("Dashboard", "scheduleLevel1Climb()");
+        // CommandScheduler.getInstance().schedule(buildLevel1ClimbCommand());
+        logControlEvent("Dashboard", "scheduleLevel1Climb() rejected: climber disabled");
     }
 
     private void scheduleCANcoderCalibration() {
@@ -858,13 +864,14 @@ public class RobotContainer {
         currentSwerveValidationCommand = null;
     }
 
-    private Command buildLevel1ClimbCommand() {
-        return Commands.run(climber::autoClimbLevel1, climber)
-                .until(climber::isAtLevel1Target)
-                .withTimeout(Constants.Climber.LEVEL1_TIMEOUT_SEC)
-                .finallyDo(climber::stop)
-                .withName("Level1ClimbAuto");
-    }
+    // --- CLIMBER DISABLED ---
+    // private Command buildLevel1ClimbCommand() {
+    //     return Commands.run(climber::autoClimbLevel1, climber)
+    //             .until(climber::isAtLevel1Target)
+    //             .withTimeout(Constants.Climber.LEVEL1_TIMEOUT_SEC)
+    //             .finallyDo(climber::stop)
+    //             .withName("Level1ClimbAuto");
+    // }
 
     private void zeroHeading() {
         swerve.zeroHeading();
@@ -875,9 +882,10 @@ public class RobotContainer {
         swerve.stop();
     }
 
-    private boolean isClimberArmed() {
-        return operatorController.start().getAsBoolean() && operatorController.back().getAsBoolean();
-    }
+    // --- CLIMBER DISABLED ---
+    // private boolean isClimberArmed() {
+    //     return operatorController.start().getAsBoolean() && operatorController.back().getAsBoolean();
+    // }
 
     private void logControlEvent(String source, String detail) {
         controlEventSeq++;
@@ -886,9 +894,11 @@ public class RobotContainer {
     }
 
     private void refreshOperatorCommandSummary() {
-        operatorCommandSummary = "climberPower=" + formatSigned(lastClimberPower)
-                + " hopperPower=" + formatSigned(lastHopperPower)
-                + " climbArmed=" + yesNo(lastClimbArmed);
+        // --- CLIMBER DISABLED: removed climber fields from summary ---
+        operatorCommandSummary = "hopperPower=" + formatSigned(lastHopperPower);
+        // operatorCommandSummary = "climberPower=" + formatSigned(lastClimberPower)
+        //         + " hopperPower=" + formatSigned(lastHopperPower)
+        //         + " climbArmed=" + yesNo(lastClimbArmed);
     }
 
     private static String formatControlState(String activeControls, String commandSummary) {

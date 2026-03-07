@@ -125,7 +125,8 @@ public class DashboardFrame extends JFrame {
     private final JLabel shooterAtSpeedLabel = new JLabel("At speed: NO");
     private final JLabel intakeLabel = new JLabel("Homed: NO  Limit: NO  Tilt: -- deg");
     private final JLabel conveyorLabel = new JLabel("Feeder -- A  Hopper -- A");
-    private final JLabel climberLabel = new JLabel("Armed: NO  Pos: -- rot  I: -- A");
+    // --- CLIMBER DISABLED ---
+    private final JLabel climberLabel = new JLabel("DISABLED — no hardware");
     private final JLabel operatorVisionLabel = new JLabel("Target: NO  Feasible: NO");
     private final JLabel operatorPhaseLabel = new JLabel("Align phase: IDLE");
     private final JLabel operatorReadyLabel = new JLabel("NOT READY");
@@ -822,9 +823,11 @@ public class DashboardFrame extends JFrame {
                 + "  Tilt: " + ONE_DECIMAL.format(data.intakeTiltDeg()) + " deg");
         conveyorLabel.setText("Feeder " + ONE_DECIMAL.format(data.feederCurrentAmps())
                 + " A  Hopper " + ONE_DECIMAL.format(data.hopperCurrentAmps()) + " A");
-        climberLabel.setText("Armed: " + yesNo(data.climberArmed())
-                + "  Pos: " + ONE_DECIMAL.format(data.climberPositionRot())
-                + " rot  I: " + ONE_DECIMAL.format(data.climberCurrentAmps()) + " A");
+        // --- CLIMBER DISABLED ---
+        climberLabel.setText("DISABLED — no hardware");
+        // climberLabel.setText("Armed: " + yesNo(data.climberArmed())
+        //         + "  Pos: " + ONE_DECIMAL.format(data.climberPositionRot())
+        //         + " rot  I: " + ONE_DECIMAL.format(data.climberCurrentAmps()) + " A");
 
         operatorVisionLabel.setText("Target: " + yesNo(data.alignHasTarget())
                 + "  Feasible: " + yesNo(data.alignGeometryFeasible()));
@@ -1054,9 +1057,9 @@ public class DashboardFrame extends JFrame {
                 connected ? "Enable teleop/test to run intake home" : "No robot connection");
         setButtonState(
                 level1ClimbButton,
-                connected && teleopEnabled && data.climberArmed(),
-                "Requires teleop and climb arm gate",
-                connected ? "Hold Start + Back in teleop" : "No robot connection");
+                false, // --- CLIMBER DISABLED ---
+                "Climber disabled — no hardware installed",
+                "Climber not installed");
         boolean swerveValidationEnabled = connected && data.enabled()
                 && ("TELEOP".equals(data.mode()) || "TEST".equals(data.mode()));
         setButtonState(
@@ -1331,9 +1334,10 @@ public class DashboardFrame extends JFrame {
                 .append(" rollerA=").append(data.intakeRollerCurrentAmps()).append('\n');
         sb.append("Conveyor: feederA=").append(data.feederCurrentAmps())
                 .append(" hopperA=").append(data.hopperCurrentAmps()).append('\n');
-        sb.append("Climber: armed=").append(data.climberArmed())
-                .append(" posRot=").append(data.climberPositionRot())
-                .append(" currentA=").append(data.climberCurrentAmps()).append('\n');
+        sb.append("Climber: DISABLED\n");
+        // sb.append("Climber: armed=").append(data.climberArmed())
+        //         .append(" posRot=").append(data.climberPositionRot())
+        //         .append(" currentA=").append(data.climberCurrentAmps()).append('\n');
         sb.append("Align: state=").append(data.alignState())
                 .append(" active=").append(data.alignCommandActive())
                 .append(" hasTarget=").append(data.alignHasTarget())
@@ -1521,19 +1525,19 @@ public class DashboardFrame extends JFrame {
                 "current=" + ONE_DECIMAL.format(data.feederCurrentAmps()) + "A");
         sb.append('\n');
 
-        sb.append("[Climber]\n");
-        appendDeviceLine(
-                sb,
-                statusFromBoolean(connected, liveTelemetry, Double.isFinite(data.climberPositionRot()), "CHECK"),
-                "Climber Leader TalonFX (CAN " + Constants.CAN.CLIMBER_LEADER + ")",
-                "position=" + ONE_DECIMAL.format(data.climberPositionRot())
-                        + " rot current=" + ONE_DECIMAL.format(data.climberCurrentAmps())
-                        + "A armed=" + data.climberArmed());
-        appendDeviceLine(
-                sb,
-                statusFromBoolean(connected, liveTelemetry, data.climberArmed(), "CHECK"),
-                "Climber Follower TalonFX (CAN " + Constants.CAN.CLIMBER_FOLLOWER + ")",
-                "inferred from leader telemetry + climber arm gate");
+        sb.append("[Climber] DISABLED — no hardware installed\n");
+        // appendDeviceLine(
+        //         sb,
+        //         statusFromBoolean(connected, liveTelemetry, Double.isFinite(data.climberPositionRot()), "CHECK"),
+        //         "Climber Leader TalonFX (CAN 20)",
+        //         "position=" + ONE_DECIMAL.format(data.climberPositionRot())
+        //                 + " rot current=" + ONE_DECIMAL.format(data.climberCurrentAmps())
+        //                 + "A armed=" + data.climberArmed());
+        // appendDeviceLine(
+        //         sb,
+        //         statusFromBoolean(connected, liveTelemetry, data.climberArmed(), "CHECK"),
+        //         "Climber Follower TalonFX (CAN 21)",
+        //         "inferred from leader telemetry + climber arm gate");
         sb.append('\n');
 
         sb.append("[Notes]\n");

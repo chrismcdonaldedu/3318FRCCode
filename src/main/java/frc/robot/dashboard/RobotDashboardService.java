@@ -510,13 +510,14 @@ public class RobotDashboardService {
                 "Only allowed in enabled teleop",
                 snapshot.timestampSec());
 
+        // --- CLIMBER DISABLED: level1_climb always rejected ---
         level1ClimbSeqSeen = runCommandIfNew(
                 level1ClimbCmdSub,
                 level1ClimbSeqSeen,
                 "level1_climb",
                 actions::scheduleLevel1Climb,
-                teleopEnabled && snapshot.climberArmed(),
-                "Requires enabled teleop and climber arm gate",
+                false,
+                "Climber disabled — no hardware installed",
                 snapshot.timestampSec());
 
         calibrateCANcodersSeqSeen = runCommandIfNew(
