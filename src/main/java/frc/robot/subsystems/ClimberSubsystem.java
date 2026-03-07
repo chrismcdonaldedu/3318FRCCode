@@ -3,6 +3,10 @@
 //
 // PURPOSE: Controls the climber winch that lifts the robot at the end of a match.
 //
+// STATUS: DISABLED — no climber hardware is currently installed.
+//         All motor code is commented out; methods are no-op stubs.
+//         Uncomment when climber hardware is added back.
+//
 // Hardware: Two TalonFX (Kraken X60) with one leader + one follower.
 //   The follower copies the leader's output automatically.
 //
@@ -17,142 +21,99 @@
 // ============================================================================
 package frc.robot.subsystems;
 
-import com.ctre.phoenix6.CANBus;
-import com.ctre.phoenix6.configs.TalonFXConfiguration;
-import com.ctre.phoenix6.controls.PositionVoltage;
-import com.ctre.phoenix6.controls.StrictFollower;
-import com.ctre.phoenix6.hardware.TalonFX;
-import com.ctre.phoenix6.signals.NeutralModeValue;
+// --- CLIMBER DISABLED: hardware imports commented out ---
+// import com.ctre.phoenix6.CANBus;
+// import com.ctre.phoenix6.configs.TalonFXConfiguration;
+// import com.ctre.phoenix6.controls.PositionVoltage;
+// import com.ctre.phoenix6.controls.StrictFollower;
+// import com.ctre.phoenix6.hardware.TalonFX;
+// import com.ctre.phoenix6.signals.NeutralModeValue;
 
-import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
+// import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 
-import frc.robot.Constants;
+// import frc.robot.Constants;
 
 public class ClimberSubsystem extends SubsystemBase {
 
-    private final TalonFX leaderWinch =
-            new TalonFX(Constants.CAN.CLIMBER_LEADER, new CANBus(Constants.CAN.CTRE_CAN_BUS));
-    private final TalonFX followerWinch =
-            new TalonFX(Constants.CAN.CLIMBER_FOLLOWER, new CANBus(Constants.CAN.CTRE_CAN_BUS));
-
-    // Position control request — used for the automatic Level 1 climb
-    private final PositionVoltage positionRequest = new PositionVoltage(0);
-
-    // Store the follower control request so we can re-apply it if needed.
-    // StrictFollower means the follower exactly copies the leader's output.
-    private final StrictFollower followRequest =
-            new StrictFollower(Constants.CAN.CLIMBER_LEADER);
+    // --- CLIMBER DISABLED: no hardware on robot ---
+    // private final TalonFX leaderWinch =
+    //         new TalonFX(Constants.CAN.CLIMBER_LEADER, new CANBus(Constants.CAN.CTRE_CAN_BUS));
+    // private final TalonFX followerWinch =
+    //         new TalonFX(Constants.CAN.CLIMBER_FOLLOWER, new CANBus(Constants.CAN.CTRE_CAN_BUS));
+    //
+    // private final PositionVoltage positionRequest = new PositionVoltage(0);
+    //
+    // private final StrictFollower followRequest =
+    //         new StrictFollower(Constants.CAN.CLIMBER_LEADER);
 
     // --------------------------------------------------------------------------
     // Constructor
     // --------------------------------------------------------------------------
     public ClimberSubsystem() {
-        TalonFXConfiguration cfg = new TalonFXConfiguration();
-
-        // Brake mode: robot holds its position when winch is not commanded.
-        // This is CRITICAL for climbing — without it, the robot would fall.
-        cfg.MotorOutput.NeutralMode = NeutralModeValue.Brake;
-
-        // Software limits prevent the winch from over-extending or over-retracting.
-        // If the winch hits a hardware limit without these, it will stall and potentially
-        // damage the mechanism or trip a breaker.
-        cfg.SoftwareLimitSwitch.ForwardSoftLimitEnable    = true;
-        cfg.SoftwareLimitSwitch.ForwardSoftLimitThreshold = Constants.Climber.FWD_SOFT_LIMIT;
-        cfg.SoftwareLimitSwitch.ReverseSoftLimitEnable    = true;
-        cfg.SoftwareLimitSwitch.ReverseSoftLimitThreshold = Constants.Climber.REV_SOFT_LIMIT;
-
-        // Current limiting: the winch pulls hard, but we need to cap it to
-        // avoid tripping breakers or destroying the gearbox.
-        cfg.CurrentLimits.StatorCurrentLimit       = Constants.Climber.STATOR_LIMIT_A;
-        cfg.CurrentLimits.StatorCurrentLimitEnable = true;
-
-        // Position PID (for the auto-climb feature)
-        cfg.Slot0.kP = Constants.Climber.CLIMBER_kP;
-        cfg.Slot0.kD = Constants.Climber.CLIMBER_kD;
-
-        // Apply the same config to both motors
-        leaderWinch.getConfigurator().apply(cfg);
-        followerWinch.getConfigurator().apply(cfg);
-
-        // Tell the follower to mirror the leader.
-        // The follower will automatically match whatever the leader outputs.
-        followerWinch.setControl(followRequest);
-
-        // Reduce CAN status frame rates — climber is low-priority and only active
-        // briefly during endgame. 4 Hz for position/current, minimize everything else.
-        leaderWinch.getPosition().setUpdateFrequency(10);
-        leaderWinch.getVelocity().setUpdateFrequency(4);
-        leaderWinch.getStatorCurrent().setUpdateFrequency(4);
-        leaderWinch.getDeviceTemp().setUpdateFrequency(1);
-        followerWinch.getPosition().setUpdateFrequency(4);
-        followerWinch.getVelocity().setUpdateFrequency(4);
-        followerWinch.getDeviceTemp().setUpdateFrequency(1);
+        // --- CLIMBER DISABLED: motor configuration commented out ---
+        // TalonFXConfiguration cfg = new TalonFXConfiguration();
+        // cfg.MotorOutput.NeutralMode = NeutralModeValue.Brake;
+        // cfg.SoftwareLimitSwitch.ForwardSoftLimitEnable    = true;
+        // cfg.SoftwareLimitSwitch.ForwardSoftLimitThreshold = Constants.Climber.FWD_SOFT_LIMIT;
+        // cfg.SoftwareLimitSwitch.ReverseSoftLimitEnable    = true;
+        // cfg.SoftwareLimitSwitch.ReverseSoftLimitThreshold = Constants.Climber.REV_SOFT_LIMIT;
+        // cfg.CurrentLimits.StatorCurrentLimit       = Constants.Climber.STATOR_LIMIT_A;
+        // cfg.CurrentLimits.StatorCurrentLimitEnable = true;
+        // cfg.Slot0.kP = Constants.Climber.CLIMBER_kP;
+        // cfg.Slot0.kD = Constants.Climber.CLIMBER_kD;
+        // leaderWinch.getConfigurator().apply(cfg);
+        // followerWinch.getConfigurator().apply(cfg);
+        // followerWinch.setControl(followRequest);
+        // leaderWinch.getPosition().setUpdateFrequency(10);
+        // leaderWinch.getVelocity().setUpdateFrequency(4);
+        // leaderWinch.getStatorCurrent().setUpdateFrequency(4);
+        // leaderWinch.getDeviceTemp().setUpdateFrequency(1);
+        // followerWinch.getPosition().setUpdateFrequency(4);
+        // followerWinch.getVelocity().setUpdateFrequency(4);
+        // followerWinch.getDeviceTemp().setUpdateFrequency(1);
     }
 
-    // --------------------------------------------------------------------------
-    // periodic() — publish winch position to dashboard for endgame monitoring
-    // --------------------------------------------------------------------------
     @Override
     public void periodic() {
-        SmartDashboard.putNumber("Climber/WinchPositionRot", getWinchPositionRot());
-        SmartDashboard.putNumber("Climber/CurrentAmps", getCurrentAmps());
+        // --- CLIMBER DISABLED ---
+        // SmartDashboard.putNumber("Climber/WinchPositionRot", getWinchPositionRot());
+        // SmartDashboard.putNumber("Climber/CurrentAmps", getCurrentAmps());
     }
 
     public double getWinchPositionRot() {
-        return leaderWinch.getPosition().getValueAsDouble();
+        // --- CLIMBER DISABLED ---
+        // return leaderWinch.getPosition().getValueAsDouble();
+        return 0.0;
     }
 
     public double getCurrentAmps() {
-        return leaderWinch.getStatorCurrent().getValueAsDouble();
+        // --- CLIMBER DISABLED ---
+        // return leaderWinch.getStatorCurrent().getValueAsDouble();
+        return 0.0;
     }
 
     public boolean isAtLevel1Target() {
-        return Math.abs(getWinchPositionRot() - Constants.Climber.LEVEL1_TARGET_ROT)
-                <= Constants.Climber.LEVEL1_TOLERANCE_ROT;
+        // --- CLIMBER DISABLED ---
+        // return Math.abs(getWinchPositionRot() - Constants.Climber.LEVEL1_TARGET_ROT)
+        //         <= Constants.Climber.LEVEL1_TOLERANCE_ROT;
+        return false;
     }
 
-    // --------------------------------------------------------------------------
-    // setWinchPower()
-    //
-    // Manually controls the winch with direct power from the operator joystick.
-    // The follower motor automatically mirrors whatever we command the leader.
-    //
-    // Parameters:
-    //   power - value from -1.0 to +1.0
-    //           positive = extend (robot goes up)
-    //           negative = retract
-    // --------------------------------------------------------------------------
     public void setWinchPower(double power) {
-        // Scale by MANUAL_POWER_SCALE so the operator can control carefully.
-        // Full stick doesn't mean full power — prevents dangerous sudden movements.
-        leaderWinch.set(power * Constants.Climber.MANUAL_POWER_SCALE);
-        // Note: followerWinch copies leaderWinch automatically via StrictFollower
+        // --- CLIMBER DISABLED ---
+        // leaderWinch.set(power * Constants.Climber.MANUAL_POWER_SCALE);
     }
 
-    // --------------------------------------------------------------------------
-    // autoClimbLevel1()
-    //
-    // Commands the winch to a specific position for a Level 1 automatic climb.
-    // Uses the position PID loop — call this in auto or as a button trigger.
-    // --------------------------------------------------------------------------
     public void autoClimbLevel1() {
-        leaderWinch.setControl(
-                positionRequest.withPosition(Constants.Climber.LEVEL1_TARGET_ROT));
-        // Follower automatically copies the leader's output
+        // --- CLIMBER DISABLED ---
+        // leaderWinch.setControl(
+        //         positionRequest.withPosition(Constants.Climber.LEVEL1_TARGET_ROT));
     }
 
-    // --------------------------------------------------------------------------
-    // stop()
-    //
-    // Stops the leader (follower will stop too since it copies the leader).
-    // Re-apply StrictFollower so it's ready for the next movement command.
-    // --------------------------------------------------------------------------
     public void stop() {
-        leaderWinch.stopMotor();
-        // Re-apply follow control so follower is always in the correct state.
-        // This prevents the follower from getting "stuck" in a neutral control
-        // mode after the leader stops.
-        followerWinch.setControl(followRequest);
+        // --- CLIMBER DISABLED ---
+        // leaderWinch.stopMotor();
+        // followerWinch.setControl(followRequest);
     }
 }

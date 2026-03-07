@@ -137,32 +137,33 @@ class RobotDashboardServiceTest {
     }
 
     @Test
-    void level1ClimbRejectedWithoutArmGate() {
+    void level1ClimbRejectedClimberDisabled() {
         level1ClimbCmdPub.set(1);
         nt.flush();
 
+        // --- CLIMBER DISABLED: always rejected regardless of arm gate ---
         service.periodic(snapshot("TELEOP", true, false, 3.0));
         nt.flush();
 
         assertEquals("level1_climb", ackCommandSub.get());
         assertEquals("REJECTED", ackStatusSub.get());
-        assertEquals("Requires enabled teleop and climber arm gate", ackMessageSub.get());
+        assertEquals("Climber disabled \u2014 no hardware installed", ackMessageSub.get());
         assertEquals(0, actions.level1ClimbCalls);
     }
 
     @Test
-    void level1ClimbAcceptedWhenTeleopAndArmed() {
+    void level1ClimbRejectedEvenWhenArmed() {
         level1ClimbCmdPub.set(2);
         nt.flush();
 
+        // --- CLIMBER DISABLED: always rejected even with arm gate ---
         service.periodic(snapshot("TELEOP", true, true, 3.1));
         nt.flush();
 
         assertEquals("level1_climb", ackCommandSub.get());
-        assertEquals("OK", ackStatusSub.get());
-        assertEquals(2L, ackSeqSub.get());
-        assertEquals("Accepted", ackMessageSub.get());
-        assertEquals(1, actions.level1ClimbCalls);
+        assertEquals("REJECTED", ackStatusSub.get());
+        assertEquals("Climber disabled \u2014 no hardware installed", ackMessageSub.get());
+        assertEquals(0, actions.level1ClimbCalls);
     }
 
     @Test

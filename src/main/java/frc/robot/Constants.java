@@ -67,9 +67,9 @@ public final class Constants {
         public static final int HOPPER_FLOOR_NEO = 19;
         public static final int FEEDER_NEO       = 18;
 
-        // ---- Climber (TalonFX) ----
-        public static final int CLIMBER_LEADER   = 20;
-        public static final int CLIMBER_FOLLOWER = 21;
+        // ---- Climber (TalonFX) — DISABLED: no climber hardware installed ----
+        // public static final int CLIMBER_LEADER   = 20;
+        // public static final int CLIMBER_FOLLOWER = 21;
 
         // Fails fast on startup if any CAN IDs are duplicated in code.
         public static void validateUniqueCanIds() {
@@ -93,8 +93,9 @@ public final class Constants {
             registerCanId(used, INTAKE_ROLLER, "INTAKE_ROLLER");
             registerCanId(used, HOPPER_FLOOR_NEO, "HOPPER_FLOOR_NEO");
             registerCanId(used, FEEDER_NEO, "FEEDER_NEO");
-            registerCanId(used, CLIMBER_LEADER, "CLIMBER_LEADER");
-            registerCanId(used, CLIMBER_FOLLOWER, "CLIMBER_FOLLOWER");
+            // --- CLIMBER DISABLED ---
+            // registerCanId(used, CLIMBER_LEADER, "CLIMBER_LEADER");
+            // registerCanId(used, CLIMBER_FOLLOWER, "CLIMBER_FOLLOWER");
         }
 
         private static void registerCanId(Map<Integer, String> used, int id, String name) {
@@ -300,7 +301,7 @@ public final class Constants {
         public static final double MIN_SHOT_RPS = 20.0;
         public static final double MAX_SHOT_RPS = 90.0;
 
-        // Default warmup speed used during SPIN_UP before distance is known.
+        // Default warmup speed used during initial spinup before distance is known.
         // Also used as fallback if the distance calculation fails.
         public static final double TARGET_RPS = 60.0;  // TUNE ME
         // Driver override speed when shooting without alignment/vision checks.
@@ -475,28 +476,28 @@ public final class Constants {
     }
 
     // =========================================================================
-    // CLIMBER CONSTANTS
+    // CLIMBER CONSTANTS — DISABLED: no climber hardware installed
     // =========================================================================
-    public static final class Climber {
-        // Software limits — climber cannot go past these positions (in motor rotations)
-        public static final double REV_SOFT_LIMIT = 0.0;    // fully retracted
-        public static final double FWD_SOFT_LIMIT = 100.0;  // fully extended
-
-        // Target position for Level 1 automatic climb
-        public static final double LEVEL1_TARGET_ROT = 45.0;  // TUNE ME
-        public static final double LEVEL1_TOLERANCE_ROT = 1.0;
-        public static final double LEVEL1_TIMEOUT_SEC = 4.0;
-
-        // Position PID for the winch
-        public static final double CLIMBER_kP = 30.0;  // TUNE ME
-        public static final double CLIMBER_kD = 0.0;
-
-        // Stator current limit for the winch motors (they pull hard!)
-        public static final int STATOR_LIMIT_A = 60;
-
-        // Manual joystick power multiplier for operator control
-        public static final double MANUAL_POWER_SCALE = 0.6;
-    }
+    // public static final class Climber {
+    //     // Software limits — climber cannot go past these positions (in motor rotations)
+    //     public static final double REV_SOFT_LIMIT = 0.0;    // fully retracted
+    //     public static final double FWD_SOFT_LIMIT = 100.0;  // fully extended
+    //
+    //     // Target position for Level 1 automatic climb
+    //     public static final double LEVEL1_TARGET_ROT = 45.0;  // TUNE ME
+    //     public static final double LEVEL1_TOLERANCE_ROT = 1.0;
+    //     public static final double LEVEL1_TIMEOUT_SEC = 4.0;
+    //
+    //     // Position PID for the winch
+    //     public static final double CLIMBER_kP = 30.0;  // TUNE ME
+    //     public static final double CLIMBER_kD = 0.0;
+    //
+    //     // Stator current limit for the winch motors (they pull hard!)
+    //     public static final int STATOR_LIMIT_A = 60;
+    //
+    //     // Manual joystick power multiplier for operator control
+    //     public static final double MANUAL_POWER_SCALE = 0.6;
+    // }
 
     // =========================================================================
     // OPERATOR INTERFACE (controller port numbers)
