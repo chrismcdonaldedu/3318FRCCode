@@ -30,6 +30,7 @@ import javax.swing.JPanel;
 import javax.swing.JProgressBar;
 import javax.swing.JScrollPane;
 import javax.swing.ScrollPaneConstants;
+import javax.swing.JToggleButton;
 import javax.swing.JTabbedPane;
 import javax.swing.JTextArea;
 import javax.swing.SwingConstants;
@@ -138,6 +139,8 @@ public class DashboardFrame extends JFrame {
     // Operator tab: system health (CAN + camera)
     private final JLabel canHealthLabel = new JLabel("CAN: --");
     private final JLabel cameraStatusLabel = new JLabel("Camera: --");
+    private final JLabel cameraDebugLabel = new JLabel("Debug: --");
+    private final JLabel cameraErrorLabel = new JLabel("Error: --");
     private final JLabel pigeonLabel = new JLabel("Pigeon: Y -- P -- R --");
 
     // Operator tab: motor temperatures
@@ -152,6 +155,13 @@ public class DashboardFrame extends JFrame {
     // Bring-up / pit tabs
     private final JTextArea bringUpArea = new JTextArea();
     private final JTextArea pitRawArea = new JTextArea();
+    private final VisionStreamPanel visionStreamPanel = new VisionStreamPanel();
+    private final JLabel visionStreamStatusLabel = new JLabel("Stream: --");
+    private final JLabel visionStreamSourceLabel = new JLabel("Source: --");
+    private final JLabel visionStreamCameraLabel = new JLabel("Camera: --");
+    private final JLabel visionStreamErrorLabel = new JLabel("Error: --");
+    private JComboBox<String> visionStreamModeCombo;
+    private JToggleButton visionStreamEnabledToggle;
     // Controls tab
     private final JLabel driverButtonsLabel = new JLabel("Driver buttons: --");
     private final JLabel operatorButtonsLabel = new JLabel("Operator buttons: --");
@@ -257,6 +267,7 @@ public class DashboardFrame extends JFrame {
         tabs.addTab("Operator", buildOperatorTab());
         tabs.addTab("Controls", buildControlsTab());
         tabs.addTab("Swerve Tools", buildSwerveToolsTab());
+        tabs.addTab("Vision", buildVisionTab());
         tabs.addTab("Bring-up", buildBringUpTab());
         tabs.addTab("Pit", buildPitTab());
         return tabs;
@@ -334,6 +345,8 @@ public class DashboardFrame extends JFrame {
         styleMetricLabel(swerveAnglesLabel);
         styleMetricLabel(canHealthLabel);
         styleMetricLabel(cameraStatusLabel);
+        styleCompactLabel(cameraDebugLabel);
+        styleCompactLabel(cameraErrorLabel);
         styleMetricLabel(pigeonLabel);
         styleMetricLabel(driveTempLabel);
         styleMetricLabel(shooterTempLabel);
@@ -350,7 +363,7 @@ public class DashboardFrame extends JFrame {
         top.add(wrapLabelCard("Readiness", operatorReadyLabel, operatorReadyReasonLabel));
         // Row 3: system health
         top.add(wrapLabelCard("Swerve Modules", swerveAnglesLabel));
-        top.add(wrapLabelCard("System Health", canHealthLabel, cameraStatusLabel, pigeonLabel));
+        top.add(wrapLabelCard("System Health", canHealthLabel, cameraStatusLabel, cameraDebugLabel, cameraErrorLabel, pigeonLabel));
         top.add(wrapLabelCard("Motor Temps", driveTempLabel, shooterTempLabel));
         root.add(top, BorderLayout.CENTER);
 
@@ -385,6 +398,64 @@ public class DashboardFrame extends JFrame {
         controlLogScroll.setBorder(BorderFactory.createLineBorder(BORDER, 1));
         controlLogScroll.getViewport().setBackground(CARD_ALT);
         root.add(wrapCard("Control Trigger Feed", controlLogScroll), BorderLayout.CENTER);
+        return root;
+    }
+
+    // =========================================================================
+    // VISION TAB
+    // =========================================================================
+    private JPanel buildVisionTab() {
+        JPanel root = new JPanel(new BorderLayout(10, 10));
+        root.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+        root.setBackground(BG);
+
+        styleMetricLabel(visionStreamStatusLabel);
+        styleMetricLabel(visionStreamSourceLabel);
+        styleMetricLabel(visionStreamCameraLabel);
+        styleMetricLabel(visionStreamErrorLabel);
+
+        JPanel controls = new JPanel();
+        controls.setLayout(new BoxLayout(controls, BoxLayout.X_AXIS));
+        controls.setBackground(CARD);
+
+        JLabel sourceLabel = infoLabel("View");
+        visionStreamModeCombo = new JComboBox<>(new String[] {"Overlay", "Raw"});
+        visionStreamModeCombo.setFont(ACTION_FONT);
+        visionStreamModeCombo.setBackground(CARD_ALT);
+        visionStreamModeCombo.setForeground(TEXT);
+        visionStreamModeCombo.setFocusable(false);
+        visionStreamModeCombo.addActionListener(e -> updateVisionStreamSelection());
+
+        visionStreamEnabledToggle = new JToggleButton("Live");
+        visionStreamEnabledToggle.setSelected(true);
+        visionStreamEnabledToggle.setFocusPainted(false);
+        visionStreamEnabledToggle.setFont(ACTION_FONT);
+        visionStreamEnabledToggle.setBackground(BUTTON_ACTIVE);
+        visionStreamEnabledToggle.setForeground(TEXT);
+        visionStreamEnabledToggle.addActionListener(e -> {
+            visionStreamEnabledToggle.setText(visionStreamEnabledToggle.isSelected() ? "Live" : "Paused");
+            visionStreamPanel.setStreamingEnabled(visionStreamEnabledToggle.isSelected());
+            updateVisionStreamSelection();
+        });
+
+        controls.add(sourceLabel);
+        controls.add(Box.createHorizontalStrut(8));
+        controls.add(visionStreamModeCombo);
+        controls.add(Box.createHorizontalStrut(10));
+        controls.add(visionStreamEnabledToggle);
+        controls.add(Box.createHorizontalGlue());
+        controls.add(infoLabel("Overlay uses roboRIO AprilTag detections"));
+
+        root.add(wrapCard("Vision Stream Controls", controls), BorderLayout.NORTH);
+        root.add(wrapCard("Live Camera", visionStreamPanel), BorderLayout.CENTER);
+        root.add(wrapLabelCard(
+                "Vision Stream Status",
+                visionStreamStatusLabel,
+                visionStreamSourceLabel,
+                visionStreamCameraLabel,
+                visionStreamErrorLabel), BorderLayout.SOUTH);
+
+        updateVisionStreamSelection();
         return root;
     }
 
@@ -850,6 +921,10 @@ public class DashboardFrame extends JFrame {
 
         cameraStatusLabel.setText("Camera: " + (data.cameraConnected() ? "CONNECTED" : "DISCONNECTED"));
         cameraStatusLabel.setForeground(data.cameraConnected() ? OK : BAD);
+        cameraDebugLabel.setText("Debug: " + buildCameraDebugSummary(data));
+        cameraDebugLabel.setForeground(data.cameraConnected() ? TEXT : WARN);
+        cameraErrorLabel.setText("Error: " + sanitize(nonBlankOr(data.cameraLastError(), "none")));
+        cameraErrorLabel.setForeground(isBlank(data.cameraLastError()) ? MUTED : WARN);
         pigeonLabel.setText("Pigeon: Y " + formatMaybe(data.pigeonYawDeg())
                 + "  P " + formatMaybe(data.pigeonPitchDeg())
                 + "  R " + formatMaybe(data.pigeonRollDeg()) + " deg");
@@ -886,6 +961,7 @@ public class DashboardFrame extends JFrame {
         bringUpArea.setText(buildBringUpText(data, telemetryAgeMs));
         bringUpArea.setCaretPosition(0);
         pitRawArea.setText(buildRawText(data));
+        updateVisionStreamStatus(data);
     }
 
     // =========================================================================
@@ -915,6 +991,54 @@ public class DashboardFrame extends JFrame {
         } else {
             matchInfoLabel.setText("Practice");
         }
+    }
+
+    private void updateVisionStreamStatus(DashboardData data) {
+        visionStreamStatusLabel.setText("Stream: " + visionStreamPanel.getStatusText());
+        visionStreamSourceLabel.setText("Source: " + buildVisionStreamSourceLabel(data));
+        visionStreamCameraLabel.setText("Camera: " + buildCameraDebugSummary(data));
+        visionStreamErrorLabel.setText("Error: " + sanitize(nonBlankOr(data.cameraLastError(), "none")));
+        visionStreamErrorLabel.setForeground(isBlank(data.cameraLastError()) ? MUTED : WARN);
+    }
+
+    private void updateVisionStreamSelection() {
+        if (visionStreamModeCombo == null) {
+            return;
+        }
+        boolean overlay = "Overlay".equals(visionStreamModeCombo.getSelectedItem());
+        String path = overlay
+                ? "http://" + client.getRobotHost() + ":" + Constants.Vision.CAMERA_OVERLAY_STREAM_PORT + "/?action=stream"
+                : "http://" + client.getRobotHost() + ":" + Constants.Vision.CAMERA_RAW_STREAM_PORT + "/?action=stream";
+        visionStreamPanel.setStreamUrl(path);
+    }
+
+    private String buildVisionStreamSourceLabel(DashboardData data) {
+        String mode = visionStreamModeCombo == null ? "Overlay" : String.valueOf(visionStreamModeCombo.getSelectedItem());
+        return mode + " host=" + client.getRobotHost()
+                + " status=" + sanitize(data.cameraStatus())
+                + " tag=" + data.visionTagId();
+    }
+
+    private String buildCameraDebugSummary(DashboardData data) {
+        return sanitize(data.cameraStatus())
+                + " dev=" + data.cameraActiveDeviceId()
+                + " frames=" + data.cameraFrameCount()
+                + " age=" + formatMaybe(cameraFrameAgeSec(data)) + "s";
+    }
+
+    private double cameraFrameAgeSec(DashboardData data) {
+        if (!Double.isFinite(data.robotTimestampSec()) || !Double.isFinite(data.cameraLastFrameTimestampSec())) {
+            return Double.NaN;
+        }
+        return Math.max(0.0, data.robotTimestampSec() - data.cameraLastFrameTimestampSec());
+    }
+
+    private static boolean isBlank(String value) {
+        return value == null || value.isBlank();
+    }
+
+    private static String nonBlankOr(String value, String fallback) {
+        return isBlank(value) ? fallback : value;
     }
 
     private void updateMatchState(DashboardData data) {
@@ -1286,6 +1410,15 @@ public class DashboardFrame extends JFrame {
         sb.append("Match: #").append(data.matchNumber())
                 .append(" event='").append(sanitize(data.eventName())).append("'\n");
         sb.append("Camera: connected=").append(data.cameraConnected()).append('\n');
+        sb.append("CameraDebug: status=").append(sanitize(data.cameraStatus()))
+                .append(" activeDev=").append(data.cameraActiveDeviceId())
+                .append(" name='").append(sanitize(data.cameraActiveName()))
+                .append("' path='").append(sanitize(data.cameraActivePath()))
+                .append("' frameCount=").append(data.cameraFrameCount())
+                .append(" lastFrameTs=").append(formatMaybe(data.cameraLastFrameTimestampSec()))
+                .append('\n');
+        sb.append("CameraEnum: ").append(sanitize(data.cameraEnumerated())).append('\n');
+        sb.append("CameraErr: ").append(sanitize(data.cameraLastError())).append('\n');
         sb.append("Vision: tagId=").append(data.visionTagId())
                 .append(" distM=").append(formatMaybe(data.visionDistanceM())).append('\n');
         sb.append("CAN: util=").append(ONE_DECIMAL.format(data.canBusUtilization() * 100.0)).append("%")
@@ -1412,7 +1545,29 @@ public class DashboardFrame extends JFrame {
                 sb,
                 statusFromBoolean(connected, liveTelemetry, data.cameraConnected(), "WARN"),
                 "USB camera (C920)",
-                "connected=" + data.cameraConnected());
+                "connected=" + data.cameraConnected()
+                        + " status=" + sanitize(data.cameraStatus())
+                        + " cfgDev=" + Constants.Vision.CAMERA_DEVICE_ID
+                        + " activeDev=" + data.cameraActiveDeviceId()
+                        + " fps=" + Constants.Vision.CAMERA_FPS
+                        + " size=" + Constants.Vision.CAMERA_WIDTH + "x" + Constants.Vision.CAMERA_HEIGHT);
+        appendDeviceLine(
+                sb,
+                statusFromBoolean(connected, liveTelemetry, data.cameraFrameCount() > 0, "WARN"),
+                "Camera frames",
+                "count=" + data.cameraFrameCount()
+                        + " lastFrameTs=" + formatMaybe(data.cameraLastFrameTimestampSec())
+                        + " ageSec=" + formatMaybe(cameraFrameAgeSec(data)));
+        appendDeviceLine(
+                sb,
+                statusFromBoolean(connected, liveTelemetry, !isBlank(data.cameraEnumerated()), "CHECK"),
+                "Enumerated USB cameras",
+                sanitize(nonBlankOr(data.cameraEnumerated(), "none")));
+        appendDeviceLine(
+                sb,
+                statusFromBoolean(connected, liveTelemetry, isBlank(data.cameraLastError()), "WARN"),
+                "Camera last error",
+                sanitize(nonBlankOr(data.cameraLastError(), "none")));
         appendDeviceLine(
                 sb,
                 statusFromBoolean(connected, liveTelemetry, data.autoOptions().length > 0, "CHECK"),
@@ -2158,6 +2313,12 @@ public class DashboardFrame extends JFrame {
         private static double clamp(double value, double min, double max) {
             return Math.max(min, Math.min(max, value));
         }
+    }
+
+    @Override
+    public void dispose() {
+        visionStreamPanel.shutdown();
+        super.dispose();
     }
 
     static {

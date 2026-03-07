@@ -475,6 +475,14 @@ class RobotDashboardServiceTest {
                 "",
                 // Camera
                 true,
+                "STREAMING",
+                0,
+                "Logitech C920",
+                "/dev/video0",
+                "dev=0 Logitech C920 @ /dev/video0",
+                "",
+                42,
+                12.0,
                 -1,
                 Double.NaN,
                 // CAN health

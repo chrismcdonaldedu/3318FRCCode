@@ -50,6 +50,14 @@ public record DashboardData(
         String eventName,
         // Camera / vision connection
         boolean cameraConnected,
+        String cameraStatus,
+        int cameraActiveDeviceId,
+        String cameraActiveName,
+        String cameraActivePath,
+        String cameraEnumerated,
+        String cameraLastError,
+        long cameraFrameCount,
+        double cameraLastFrameTimestampSec,
         // Vision tag detection
         int visionTagId,
         double visionDistanceM,

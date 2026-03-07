@@ -424,6 +424,8 @@ public final class Constants {
         public static final int CAMERA_WIDTH     = 320;
         public static final int CAMERA_HEIGHT    = 240;
         public static final int CAMERA_FPS       = 15;
+        public static final int CAMERA_RAW_STREAM_PORT = 1181;
+        public static final int CAMERA_OVERLAY_STREAM_PORT = 1182;
 
         // ---- C920 camera intrinsics (320x240, 4:3 crop) ----
         // Horizontal FOV from Logitech C920 spec sheet (native 16:9 is 70.42°,

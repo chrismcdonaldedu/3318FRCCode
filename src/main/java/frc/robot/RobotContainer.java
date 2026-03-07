@@ -58,6 +58,7 @@ import frc.robot.dashboard.ReadyToScoreEvaluator;
 import frc.robot.dashboard.ReadyToScoreResult;
 import frc.robot.dashboard.RobotDashboardService;
 import frc.robot.subsystems.*;
+import frc.robot.vision.CameraDebugInfo;
 import frc.robot.subsystems.swerve.SwerveCorner;
 import frc.robot.subsystems.swerve.SwerveValidationMode;
 import frc.robot.vision.RioVisionThread;
@@ -72,6 +73,8 @@ public class RobotContainer {
     // =========================================================================
     private final AtomicReference<VisionResult> visionResult = new AtomicReference<>();
     private final AtomicReference<Double> lastVisionFrameTimestampSec = new AtomicReference<>(Double.NaN);
+    private final AtomicReference<CameraDebugInfo> cameraDebugInfo =
+            new AtomicReference<>(CameraDebugInfo.defaultState());
 
     // =========================================================================
     // SUBSYSTEMS — created once here, shared with commands
@@ -132,7 +135,7 @@ public class RobotContainer {
 
         // Start the background vision thread (USB camera AprilTag detection).
         if (Constants.Vision.ENABLE_VISION) {
-            new RioVisionThread(visionResult, lastVisionFrameTimestampSec).start();
+            new RioVisionThread(visionResult, lastVisionFrameTimestampSec, cameraDebugInfo).start();
         }
 
         // Schedule intake homing at startup so the arm finds its zero position.
@@ -649,6 +652,7 @@ public class RobotContainer {
                         Constants.Vision.YAW_TOLERANCE_DEG));
 
         VisionResult latestVision = visionResult.get();
+        CameraDebugInfo latestCameraDebug = cameraDebugInfo.get();
         int visionTagId = latestVision != null ? latestVision.tagId() : -1;
         double visionDistanceM = latestVision != null
                 ? latestVision.estimateDistanceM(
@@ -715,6 +719,14 @@ public class RobotContainer {
                 DriverStation.getEventName(),
                 // Camera
                 swerve.isCameraConnected(),
+                latestCameraDebug.status(),
+                latestCameraDebug.activeDeviceId(),
+                latestCameraDebug.activeCameraName(),
+                latestCameraDebug.activeCameraPath(),
+                latestCameraDebug.enumeratedCameras(),
+                latestCameraDebug.lastError(),
+                latestCameraDebug.frameCount(),
+                latestCameraDebug.lastFrameTimestampSec(),
                 visionTagId,
                 visionDistanceM,
                 // CAN health

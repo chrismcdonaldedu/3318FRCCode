@@ -22,12 +22,16 @@ package frc.robot.vision;
 
 import java.util.concurrent.atomic.AtomicReference;
 
+import org.opencv.core.Point;
+import org.opencv.core.Scalar;
 import org.opencv.core.Mat;
+import org.opencv.imgproc.Imgproc;
 
 import edu.wpi.first.apriltag.AprilTagDetection;
 import edu.wpi.first.apriltag.AprilTagDetector;
 import edu.wpi.first.cameraserver.CameraServer;
 import edu.wpi.first.cscore.CameraServerJNI;
+import edu.wpi.first.cscore.CvSource;
 import edu.wpi.first.cscore.CvSink;
 import edu.wpi.first.cscore.UsbCamera;
 import edu.wpi.first.cscore.UsbCameraInfo;
@@ -40,45 +44,67 @@ public class RioVisionThread extends Thread {
 
     private final AtomicReference<VisionResult> latestResult;
     private final AtomicReference<Double> lastFrameTimestampSec;
+    private final AtomicReference<CameraDebugInfo> cameraDebugInfo;
 
     public RioVisionThread(
             AtomicReference<VisionResult> latestResult,
-            AtomicReference<Double> lastFrameTimestampSec) {
+            AtomicReference<Double> lastFrameTimestampSec,
+            AtomicReference<CameraDebugInfo> cameraDebugInfo) {
         super("RioVisionThread");
         setDaemon(true);
         this.latestResult = latestResult;
         this.lastFrameTimestampSec = lastFrameTimestampSec;
+        this.cameraDebugInfo = cameraDebugInfo;
     }
 
     @Override
     public void run() {
         UsbCamera usbCamera = null;
         CvSink cvSink = null;
+        CvSource overlayOutput = null;
         AprilTagDetector detector = null;
         Mat mat = new Mat();
         Mat grayMat = new Mat();
         double lastGrabErrorLogSec = Double.NEGATIVE_INFINITY;
         boolean firstFrameLogged = false;
+        long frameCount = 0;
 
         try {
-            logEnumeratedUsbCameras();
+            UsbCameraInfo[] cameras = CameraServerJNI.enumerateUsbCameras();
+            String enumeratedSummary = summarizeUsbCameras(cameras);
+            UsbCameraInfo configuredCamera = findCameraInfo(cameras, Constants.Vision.CAMERA_DEVICE_ID);
+            cameraDebugInfo.set(CameraDebugInfo.defaultState()
+                    .withEnumeration(enumeratedSummary)
+                    .withActiveCamera(
+                            configuredCamera != null ? configuredCamera.dev : -1,
+                            configuredCamera != null ? configuredCamera.name : "",
+                            configuredCamera != null ? configuredCamera.path : "")
+                    .withStatus(cameras.length == 0 ? "NO_USB_CAMERAS" : "USB_ENUMERATED"));
+            logEnumeratedUsbCameras(cameras);
 
             // Start USB camera via CameraServer (also streams to dashboard)
             usbCamera = CameraServer.startAutomaticCapture(
                     Constants.Vision.CAMERA_DEVICE_ID);
             usbCamera.setResolution(Constants.Vision.CAMERA_WIDTH, Constants.Vision.CAMERA_HEIGHT);
             usbCamera.setFPS(Constants.Vision.CAMERA_FPS);
+            cameraDebugInfo.set(cameraDebugInfo.get().withStatus("CAPTURE_OPEN"));
 
             cvSink = CameraServer.getVideo();
             // Set a grab timeout so the thread doesn't block forever if the
             // camera disconnects mid-match. 500ms ≈ ~8 missed frames at 15 fps.
             cvSink.setEnabled(true);
 
+            overlayOutput = CameraServer.putVideo(
+                    "RioVisionOverlay",
+                    Constants.Vision.CAMERA_WIDTH,
+                    Constants.Vision.CAMERA_HEIGHT);
+
             // Configure AprilTag detector for 36h11 tag family
             detector = new AprilTagDetector();
             detector.addFamily("tag36h11");
         } catch (Exception ex) {
             System.err.println("[RioVisionThread] FATAL: Camera/detector init failed: " + ex.getMessage());
+            cameraDebugInfo.set(cameraDebugInfo.get().withError("INIT_FAILED", ex.getMessage()));
             ex.printStackTrace();
             grayMat.release();
             mat.release();
@@ -93,11 +119,12 @@ public class RioVisionThread extends Thread {
                     // Frame grab failed — camera probably disconnected.
                     // Retry on next iteration; main loop sees stale result.
                     double nowSec = Timer.getFPGATimestamp();
+                    String error = cvSink.getError();
+                    if (error == null || error.isBlank()) {
+                        error = "unknown cscore error";
+                    }
+                    cameraDebugInfo.set(cameraDebugInfo.get().withError("GRAB_FAILED", error));
                     if (nowSec - lastGrabErrorLogSec >= 1.0) {
-                        String error = cvSink.getError();
-                        if (error == null || error.isBlank()) {
-                            error = "unknown cscore error";
-                        }
                         System.err.println("[RioVisionThread] grabFrame() failed: " + error);
                         lastGrabErrorLogSec = nowSec;
                     }
@@ -106,6 +133,8 @@ public class RioVisionThread extends Thread {
 
                 double timestampSec = Timer.getFPGATimestamp();
                 lastFrameTimestampSec.set(timestampSec);
+                frameCount++;
+                cameraDebugInfo.set(cameraDebugInfo.get().withFrame(frameCount, timestampSec));
                 if (!firstFrameLogged) {
                     System.out.println("[RioVisionThread] First camera frame received at t=" + timestampSec);
                     firstFrameLogged = true;
@@ -113,12 +142,14 @@ public class RioVisionThread extends Thread {
 
                 Mat detectorFrame = VisionSupport.prepareDetectorFrame(mat, grayMat);
                 AprilTagDetection[] detections = detector.detect(detectorFrame);
+                int[] hubTagIds = getAllianceHubTagIds();
+                annotateFrame(mat, detections, hubTagIds);
+                overlayOutput.putFrame(mat);
                 if (detections.length == 0) {
                     continue;
                 }
 
                 // Filter for alliance HUB tags and pick the largest (closest)
-                int[] hubTagIds = getAllianceHubTagIds();
                 AprilTagDetection best = null;
                 double bestPixelHeight = 0;
 
@@ -161,6 +192,9 @@ public class RioVisionThread extends Thread {
         }
 
         detector.close();
+        if (overlayOutput != null) {
+            overlayOutput.close();
+        }
         grayMat.release();
         mat.release();
     }
@@ -202,8 +236,7 @@ public class RioVisionThread extends Thread {
         return false;
     }
 
-    private static void logEnumeratedUsbCameras() {
-        UsbCameraInfo[] cameras = CameraServerJNI.enumerateUsbCameras();
+    private static void logEnumeratedUsbCameras(UsbCameraInfo[] cameras) {
         if (cameras.length == 0) {
             System.err.println("[RioVisionThread] No USB cameras enumerated before capture.");
             return;
@@ -216,6 +249,76 @@ public class RioVisionThread extends Thread {
                             + " name=" + camera.name
                             + " vid=0x" + Integer.toHexString(camera.vendorId)
                             + " pid=0x" + Integer.toHexString(camera.productId));
+        }
+    }
+
+    private static String summarizeUsbCameras(UsbCameraInfo[] cameras) {
+        if (cameras.length == 0) {
+            return "none";
+        }
+        StringBuilder summary = new StringBuilder();
+        for (int i = 0; i < cameras.length; i++) {
+            UsbCameraInfo camera = cameras[i];
+            if (i > 0) {
+                summary.append(" | ");
+            }
+            summary.append("dev=").append(camera.dev)
+                    .append(' ')
+                    .append(camera.name)
+                    .append(" @ ")
+                    .append(camera.path);
+        }
+        return summary.toString();
+    }
+
+    private static UsbCameraInfo findCameraInfo(UsbCameraInfo[] cameras, int deviceId) {
+        for (UsbCameraInfo camera : cameras) {
+            if (camera.dev == deviceId) {
+                return camera;
+            }
+        }
+        return null;
+    }
+
+    private static void annotateFrame(Mat frame, AprilTagDetection[] detections, int[] hubTagIds) {
+        Scalar centerColor = new Scalar(255, 255, 255);
+        Scalar hubColor = new Scalar(60, 210, 80);
+        Scalar otherColor = new Scalar(255, 180, 60);
+        Scalar textColor = new Scalar(255, 255, 255);
+
+        int imageCenterX = Constants.Vision.CAMERA_WIDTH / 2;
+        int imageCenterY = Constants.Vision.CAMERA_HEIGHT / 2;
+        Imgproc.drawMarker(frame, new Point(imageCenterX, imageCenterY), centerColor, Imgproc.MARKER_CROSS, 18, 1);
+        Imgproc.putText(
+                frame,
+                "RIO TAG OVERLAY",
+                new Point(8, 18),
+                Imgproc.FONT_HERSHEY_SIMPLEX,
+                0.45,
+                textColor,
+                1);
+
+        for (AprilTagDetection detection : detections) {
+            boolean hubTarget = isHubTag(detection.getId(), hubTagIds);
+            Scalar color = hubTarget ? hubColor : otherColor;
+            Point[] corners = new Point[] {
+                new Point(detection.getCornerX(0), detection.getCornerY(0)),
+                new Point(detection.getCornerX(1), detection.getCornerY(1)),
+                new Point(detection.getCornerX(2), detection.getCornerY(2)),
+                new Point(detection.getCornerX(3), detection.getCornerY(3))
+            };
+            for (int i = 0; i < corners.length; i++) {
+                Imgproc.line(frame, corners[i], corners[(i + 1) % corners.length], color, 2);
+            }
+            Point labelPoint = new Point(detection.getCornerX(0), Math.max(12.0, detection.getCornerY(0) - 6.0));
+            Imgproc.putText(
+                    frame,
+                    (hubTarget ? "HUB " : "TAG ") + detection.getId(),
+                    labelPoint,
+                    Imgproc.FONT_HERSHEY_SIMPLEX,
+                    0.45,
+                    color,
+                    1);
         }
     }
 }

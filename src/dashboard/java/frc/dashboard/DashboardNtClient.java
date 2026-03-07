@@ -26,6 +26,7 @@ public class DashboardNtClient implements AutoCloseable {
     private final NetworkTableInstance nt = NetworkTableInstance.create();
     private final NetworkTable table = nt.getTable("Dashboard");
     private final NetworkTable smartDashboardTable = nt.getTable("SmartDashboard");
+    private final String robotHost;
 
     private final StringSubscriber modeSub = table.getStringTopic("robot/mode").subscribe("UNKNOWN");
     private final BooleanSubscriber enabledSub = table.getBooleanTopic("robot/enabled").subscribe(false);
@@ -98,6 +99,22 @@ public class DashboardNtClient implements AutoCloseable {
     // Camera / vision connection
     private final BooleanSubscriber cameraConnectedSub =
             table.getBooleanTopic("vision/camera_connected").subscribe(false);
+    private final StringSubscriber cameraStatusSub =
+            table.getStringTopic("vision/camera_status").subscribe("STARTING");
+    private final IntegerSubscriber cameraActiveDeviceSub =
+            table.getIntegerTopic("vision/camera_active_device").subscribe(-1);
+    private final StringSubscriber cameraActiveNameSub =
+            table.getStringTopic("vision/camera_name").subscribe("");
+    private final StringSubscriber cameraActivePathSub =
+            table.getStringTopic("vision/camera_path").subscribe("");
+    private final StringSubscriber cameraEnumeratedSub =
+            table.getStringTopic("vision/camera_enumerated").subscribe("");
+    private final StringSubscriber cameraLastErrorSub =
+            table.getStringTopic("vision/camera_last_error").subscribe("");
+    private final IntegerSubscriber cameraFrameCountSub =
+            table.getIntegerTopic("vision/camera_frame_count").subscribe(0);
+    private final DoubleSubscriber cameraLastFrameTimestampSub =
+            table.getDoubleTopic("vision/camera_last_frame_ts_sec").subscribe(Double.NaN);
     private final IntegerSubscriber visionTagIdSub =
             table.getIntegerTopic("vision/tag_id").subscribe(-1);
     private final DoubleSubscriber visionDistanceSub =
@@ -233,12 +250,17 @@ public class DashboardNtClient implements AutoCloseable {
     private long selectAutoSeq = 0;
 
     public DashboardNtClient(String clientName, int teamNumber, String hostOverride) {
+        robotHost = resolveRobotHost(teamNumber, hostOverride);
         nt.startClient4(clientName);
         if (teamNumber > 0) {
             nt.setServerTeam(teamNumber);
         } else {
             nt.setServer(hostOverride);
         }
+    }
+
+    public String getRobotHost() {
+        return robotHost;
     }
 
     public DashboardData read() {
@@ -295,6 +317,14 @@ public class DashboardNtClient implements AutoCloseable {
                 eventNameSub.get(),
                 // Camera
                 cameraConnectedSub.get(),
+                cameraStatusSub.get(),
+                (int) cameraActiveDeviceSub.get(),
+                cameraActiveNameSub.get(),
+                cameraActivePathSub.get(),
+                cameraEnumeratedSub.get(),
+                cameraLastErrorSub.get(),
+                cameraFrameCountSub.get(),
+                cameraLastFrameTimestampSub.get(),
                 (int) visionTagIdSub.get(),
                 visionDistanceSub.get(),
                 // CAN health
@@ -358,6 +388,18 @@ public class DashboardNtClient implements AutoCloseable {
                 ackSeqSub.get(),
                 ackMessageSub.get(),
                 ackTimestampSub.get());
+    }
+
+    private static String resolveRobotHost(int teamNumber, String hostOverride) {
+        if (hostOverride != null && !hostOverride.isBlank()) {
+            return hostOverride;
+        }
+        if (teamNumber <= 0) {
+            return "10.33.18.2";
+        }
+        int first = teamNumber / 100;
+        int second = teamNumber % 100;
+        return "10." + first + "." + second + ".2";
     }
 
     private static double preferFinite(double primary, double fallback) {
