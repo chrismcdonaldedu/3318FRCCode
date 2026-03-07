@@ -49,6 +49,14 @@ public record DashboardSnapshot(
         String eventName,
         // Camera / vision connection
         boolean cameraConnected,
+        String cameraStatus,
+        int cameraActiveDeviceId,
+        String cameraActiveName,
+        String cameraActivePath,
+        String cameraEnumerated,
+        String cameraLastError,
+        long cameraFrameCount,
+        double cameraLastFrameTimestampSec,
         // Vision tag detection (from background vision thread)
         int visionTagId,
         double visionDistanceM,

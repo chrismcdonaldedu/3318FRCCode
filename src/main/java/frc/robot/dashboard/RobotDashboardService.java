@@ -28,7 +28,7 @@ public class RobotDashboardService {
         void selectAutoByName(String autoName);
     }
 
-    private static final String CONTRACT_VERSION = "2026.9.0";
+    private static final String CONTRACT_VERSION = "2026.10.0";
 
     private final Actions actions;
 
@@ -92,6 +92,14 @@ public class RobotDashboardService {
 
     // Camera / vision connection
     private final BooleanPublisher cameraConnectedPub;
+    private final StringPublisher cameraStatusPub;
+    private final IntegerPublisher cameraActiveDevicePub;
+    private final StringPublisher cameraActiveNamePub;
+    private final StringPublisher cameraActivePathPub;
+    private final StringPublisher cameraEnumeratedPub;
+    private final StringPublisher cameraLastErrorPub;
+    private final IntegerPublisher cameraFrameCountPub;
+    private final DoublePublisher cameraLastFrameTimestampPub;
     private final IntegerPublisher visionTagIdPub;
     private final DoublePublisher visionDistancePub;
 
@@ -247,6 +255,14 @@ public class RobotDashboardService {
 
         // Camera / vision connection
         cameraConnectedPub = table.getBooleanTopic("vision/camera_connected").publish();
+        cameraStatusPub = table.getStringTopic("vision/camera_status").publish();
+        cameraActiveDevicePub = table.getIntegerTopic("vision/camera_active_device").publish();
+        cameraActiveNamePub = table.getStringTopic("vision/camera_name").publish();
+        cameraActivePathPub = table.getStringTopic("vision/camera_path").publish();
+        cameraEnumeratedPub = table.getStringTopic("vision/camera_enumerated").publish();
+        cameraLastErrorPub = table.getStringTopic("vision/camera_last_error").publish();
+        cameraFrameCountPub = table.getIntegerTopic("vision/camera_frame_count").publish();
+        cameraLastFrameTimestampPub = table.getDoubleTopic("vision/camera_last_frame_ts_sec").publish();
         visionTagIdPub = table.getIntegerTopic("vision/tag_id").publish();
         visionDistancePub = table.getDoubleTopic("vision/distance_m").publish();
 
@@ -401,6 +417,14 @@ public class RobotDashboardService {
 
         // Camera / vision connection
         cameraConnectedPub.set(snapshot.cameraConnected());
+        cameraStatusPub.set(snapshot.cameraStatus());
+        cameraActiveDevicePub.set(snapshot.cameraActiveDeviceId());
+        cameraActiveNamePub.set(snapshot.cameraActiveName());
+        cameraActivePathPub.set(snapshot.cameraActivePath());
+        cameraEnumeratedPub.set(snapshot.cameraEnumerated());
+        cameraLastErrorPub.set(snapshot.cameraLastError());
+        cameraFrameCountPub.set(snapshot.cameraFrameCount());
+        cameraLastFrameTimestampPub.set(snapshot.cameraLastFrameTimestampSec());
         visionTagIdPub.set(snapshot.visionTagId());
         visionDistancePub.set(snapshot.visionDistanceM());
 

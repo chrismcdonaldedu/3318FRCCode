@@ -36,6 +36,8 @@ import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.concurrent.atomic.AtomicReference;
 
+import edu.wpi.first.cameraserver.CameraServer;
+import edu.wpi.first.cscore.UsbCamera;
 import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.system.plant.DCMotor;
 import edu.wpi.first.wpilibj.DriverStation;
@@ -58,6 +60,7 @@ import frc.robot.dashboard.ReadyToScoreEvaluator;
 import frc.robot.dashboard.ReadyToScoreResult;
 import frc.robot.dashboard.RobotDashboardService;
 import frc.robot.subsystems.*;
+import frc.robot.vision.CameraDebugInfo;
 import frc.robot.subsystems.swerve.SwerveCorner;
 import frc.robot.subsystems.swerve.SwerveValidationMode;
 import frc.robot.vision.RioVisionThread;
@@ -72,6 +75,8 @@ public class RobotContainer {
     // =========================================================================
     private final AtomicReference<VisionResult> visionResult = new AtomicReference<>();
     private final AtomicReference<Double> lastVisionFrameTimestampSec = new AtomicReference<>(Double.NaN);
+    private final AtomicReference<CameraDebugInfo> cameraDebugInfo =
+            new AtomicReference<>(CameraDebugInfo.defaultState());
 
     // =========================================================================
     // SUBSYSTEMS — created once here, shared with commands
@@ -132,7 +137,8 @@ public class RobotContainer {
 
         // Start the background vision thread (USB camera AprilTag detection).
         if (Constants.Vision.ENABLE_VISION) {
-            new RioVisionThread(visionResult, lastVisionFrameTimestampSec).start();
+            UsbCamera visionCamera = startVisionCamera();
+            new RioVisionThread(visionCamera, visionResult, lastVisionFrameTimestampSec, cameraDebugInfo).start();
         }
 
         // Schedule intake homing at startup so the arm finds its zero position.
@@ -192,6 +198,21 @@ public class RobotContainer {
                 RobotContainer.this.selectAutoByName(autoName, "CUSTOM DASHBOARD");
             }
         });
+    }
+
+    private UsbCamera startVisionCamera() {
+        try {
+            UsbCamera camera = CameraServer.startAutomaticCapture(Constants.Vision.CAMERA_DEVICE_ID);
+            camera.setResolution(Constants.Vision.CAMERA_WIDTH, Constants.Vision.CAMERA_HEIGHT);
+            camera.setFPS(Constants.Vision.CAMERA_FPS);
+            cameraDebugInfo.set(cameraDebugInfo.get().withStatus("CAPTURE_OPEN"));
+            return camera;
+        } catch (Exception ex) {
+            cameraDebugInfo.set(cameraDebugInfo.get().withError("CAPTURE_OPEN_FAILED", ex.getMessage()));
+            System.err.println("[RobotContainer] Failed to open USB camera: " + ex.getMessage());
+            ex.printStackTrace();
+            return null;
+        }
     }
 
     private void configureCommandEventLogging() {
@@ -649,6 +670,7 @@ public class RobotContainer {
                         Constants.Vision.YAW_TOLERANCE_DEG));
 
         VisionResult latestVision = visionResult.get();
+        CameraDebugInfo latestCameraDebug = cameraDebugInfo.get();
         int visionTagId = latestVision != null ? latestVision.tagId() : -1;
         double visionDistanceM = latestVision != null
                 ? latestVision.estimateDistanceM(
@@ -715,6 +737,14 @@ public class RobotContainer {
                 DriverStation.getEventName(),
                 // Camera
                 swerve.isCameraConnected(),
+                latestCameraDebug.status(),
+                latestCameraDebug.activeDeviceId(),
+                latestCameraDebug.activeCameraName(),
+                latestCameraDebug.activeCameraPath(),
+                latestCameraDebug.enumeratedCameras(),
+                latestCameraDebug.lastError(),
+                latestCameraDebug.frameCount(),
+                latestCameraDebug.lastFrameTimestampSec(),
                 visionTagId,
                 visionDistanceM,
                 // CAN health
