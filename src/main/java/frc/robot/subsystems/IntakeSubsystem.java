@@ -165,7 +165,22 @@ public class IntakeSubsystem extends SubsystemBase {
     // Used during homing and manual control. Does NOT use PID.
     // --------------------------------------------------------------------------
     public void setTiltPower(double power) {
-        tiltMotor.set(power);
+        double clampedPower = Math.max(-1.0, Math.min(1.0, power));
+
+        if (clampedPower < 0.0 && getLimitSwitchPressed()) {
+            clampedPower = 0.0;
+        }
+        if (isHomed) {
+            double positionDeg = getTiltPositionDeg();
+            if (clampedPower < 0.0 && positionDeg <= Constants.Intake.TILT_MIN_DEG) {
+                clampedPower = 0.0;
+            }
+            if (clampedPower > 0.0 && positionDeg >= Constants.Intake.TILT_MAX_DEG) {
+                clampedPower = 0.0;
+            }
+        }
+
+        tiltMotor.set(clampedPower);
     }
 
     // --------------------------------------------------------------------------
