@@ -116,6 +116,7 @@ public class RobotContainer {
     // --- CLIMBER DISABLED ---
     // private double lastClimberPower = 0.0;
     private double lastHopperPower = 0.0;
+    private double lastIntakeTiltPower = 0.0;
     // private boolean lastClimbArmed = false;
     private Command currentSwerveValidationCommand;
 
@@ -514,6 +515,17 @@ public class RobotContainer {
                     refreshOperatorCommandSummary();
                 }, hopper).withName("OperatorHopperManualDefault"));
 
+        // Right stick Y: Manual intake tilt control with deadband to prevent jitter.
+        intake.setDefaultCommand(
+                Commands.run(() -> {
+                    double tiltPower = MathUtil.applyDeadband(
+                            -operatorController.getRightY(), Constants.Swerve.JOYSTICK_DEADBAND);
+                    intake.setTiltPower(tiltPower);
+
+                    lastIntakeTiltPower = tiltPower;
+                    refreshOperatorCommandSummary();
+                }, intake).withName("OperatorIntakeTiltManualDefault"));
+
         // --- CLIMBER DISABLED: A button (auto climb) and B button (climber stop) commented out ---
         // A button: Automatic Level 1 climb (requires climb gate held)
         // operatorController.a()
@@ -895,7 +907,8 @@ public class RobotContainer {
 
     private void refreshOperatorCommandSummary() {
         // --- CLIMBER DISABLED: removed climber fields from summary ---
-        operatorCommandSummary = "hopperPower=" + formatSigned(lastHopperPower);
+        operatorCommandSummary = "hopperPower=" + formatSigned(lastHopperPower)
+                + " tiltPower=" + formatSigned(lastIntakeTiltPower);
         // operatorCommandSummary = "climberPower=" + formatSigned(lastClimberPower)
         //         + " hopperPower=" + formatSigned(lastHopperPower)
         //         + " climbArmed=" + yesNo(lastClimbArmed);
