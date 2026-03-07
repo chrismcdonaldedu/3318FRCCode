@@ -36,6 +36,8 @@ import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.concurrent.atomic.AtomicReference;
 
+import edu.wpi.first.cameraserver.CameraServer;
+import edu.wpi.first.cscore.UsbCamera;
 import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.system.plant.DCMotor;
 import edu.wpi.first.wpilibj.DriverStation;
@@ -135,7 +137,8 @@ public class RobotContainer {
 
         // Start the background vision thread (USB camera AprilTag detection).
         if (Constants.Vision.ENABLE_VISION) {
-            new RioVisionThread(visionResult, lastVisionFrameTimestampSec, cameraDebugInfo).start();
+            UsbCamera visionCamera = startVisionCamera();
+            new RioVisionThread(visionCamera, visionResult, lastVisionFrameTimestampSec, cameraDebugInfo).start();
         }
 
         // Schedule intake homing at startup so the arm finds its zero position.
@@ -195,6 +198,21 @@ public class RobotContainer {
                 RobotContainer.this.selectAutoByName(autoName, "CUSTOM DASHBOARD");
             }
         });
+    }
+
+    private UsbCamera startVisionCamera() {
+        try {
+            UsbCamera camera = CameraServer.startAutomaticCapture(Constants.Vision.CAMERA_DEVICE_ID);
+            camera.setResolution(Constants.Vision.CAMERA_WIDTH, Constants.Vision.CAMERA_HEIGHT);
+            camera.setFPS(Constants.Vision.CAMERA_FPS);
+            cameraDebugInfo.set(cameraDebugInfo.get().withStatus("CAPTURE_OPEN"));
+            return camera;
+        } catch (Exception ex) {
+            cameraDebugInfo.set(cameraDebugInfo.get().withError("CAPTURE_OPEN_FAILED", ex.getMessage()));
+            System.err.println("[RobotContainer] Failed to open USB camera: " + ex.getMessage());
+            ex.printStackTrace();
+            return null;
+        }
     }
 
     private void configureCommandEventLogging() {

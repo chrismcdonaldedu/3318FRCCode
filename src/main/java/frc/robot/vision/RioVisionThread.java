@@ -42,16 +42,19 @@ import frc.robot.Constants;
 
 public class RioVisionThread extends Thread {
 
+    private final UsbCamera sharedCamera;
     private final AtomicReference<VisionResult> latestResult;
     private final AtomicReference<Double> lastFrameTimestampSec;
     private final AtomicReference<CameraDebugInfo> cameraDebugInfo;
 
     public RioVisionThread(
+            UsbCamera sharedCamera,
             AtomicReference<VisionResult> latestResult,
             AtomicReference<Double> lastFrameTimestampSec,
             AtomicReference<CameraDebugInfo> cameraDebugInfo) {
         super("RioVisionThread");
         setDaemon(true);
+        this.sharedCamera = sharedCamera;
         this.latestResult = latestResult;
         this.lastFrameTimestampSec = lastFrameTimestampSec;
         this.cameraDebugInfo = cameraDebugInfo;
@@ -82,14 +85,13 @@ public class RioVisionThread extends Thread {
                     .withStatus(cameras.length == 0 ? "NO_USB_CAMERAS" : "USB_ENUMERATED"));
             logEnumeratedUsbCameras(cameras);
 
-            // Start USB camera via CameraServer (also streams to dashboard)
-            usbCamera = CameraServer.startAutomaticCapture(
-                    Constants.Vision.CAMERA_DEVICE_ID);
-            usbCamera.setResolution(Constants.Vision.CAMERA_WIDTH, Constants.Vision.CAMERA_HEIGHT);
-            usbCamera.setFPS(Constants.Vision.CAMERA_FPS);
-            cameraDebugInfo.set(cameraDebugInfo.get().withStatus("CAPTURE_OPEN"));
+            usbCamera = sharedCamera;
+            if (usbCamera == null) {
+                throw new IllegalStateException("Shared USB camera was not created");
+            }
+            cameraDebugInfo.set(cameraDebugInfo.get().withStatus("CAPTURE_ATTACHED"));
 
-            cvSink = CameraServer.getVideo();
+            cvSink = CameraServer.getVideo(usbCamera);
             // Set a grab timeout so the thread doesn't block forever if the
             // camera disconnects mid-match. 500ms ≈ ~8 missed frames at 15 fps.
             cvSink.setEnabled(true);
