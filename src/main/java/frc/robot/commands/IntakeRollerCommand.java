@@ -40,6 +40,12 @@ public class IntakeRollerCommand extends Command {
     private final Timer stallTimer = new Timer();
     // Timer tracks how long we've been reversing
     private final Timer reverseTimer = new Timer();
+    // Timer tracks how long we've been in lockout before auto-resetting
+    private final Timer lockoutTimer = new Timer();
+
+    // Pause duration before auto-resetting from lockout (seconds).
+    // Gives the mechanism time to settle before retrying.
+    private static final double LOCKOUT_COOLDOWN_SEC = 1.0;
 
     // --------------------------------------------------------------------------
     // Constructor
@@ -85,7 +91,17 @@ public class IntakeRollerCommand extends Command {
         }
         if (update.enteredLockout()) {
             System.out.println("[IntakeRoller] Max retries (" + Constants.Intake.STALL_MAX_RETRIES
-                    + ") reached. Locking out roller until command is restarted.");
+                    + ") reached. Pausing " + LOCKOUT_COOLDOWN_SEC + "s before auto-reset.");
+            restartTimer(lockoutTimer);
+        }
+
+        // Auto-reset from lockout after a cooldown period so the operator
+        // doesn't have to release and re-press the trigger.
+        if (protection.isLockedOut() && lockoutTimer.hasElapsed(LOCKOUT_COOLDOWN_SEC)) {
+            System.out.println("[IntakeRoller] Auto-resetting after lockout cooldown.");
+            protection.reset();
+            restartTimer(stallTimer);
+            intake.setRollerPower(forwardPower);
         }
 
         intake.setRollerPower(protection.commandedPower(
@@ -103,7 +119,9 @@ public class IntakeRollerCommand extends Command {
 
     @Override
     public boolean isFinished() {
-        return protection.isLockedOut();
+        // Never auto-finish — command runs until interrupted (button released).
+        // Lockout is handled by pausing and auto-resetting above.
+        return false;
     }
 
     private static void restartTimer(Timer timer) {

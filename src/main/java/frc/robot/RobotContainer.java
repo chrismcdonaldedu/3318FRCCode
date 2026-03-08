@@ -141,11 +141,10 @@ public class RobotContainer {
             new RioVisionThread(visionCamera, visionResult, lastVisionFrameTimestampSec, cameraDebugInfo).start();
         }
 
-        // Schedule intake homing at startup so the arm finds its zero position.
-        // This runs once when the robot first enables (CommandScheduler won't
-        // execute commands while disabled, so the actual homing happens when
-        // the robot is first enabled in teleop or auto).
-        CommandScheduler.getInstance().schedule(buildIntakeHomeCommand());
+        // Intake homing is handled by:
+        //   - Auto routines: via the "HomeIntake" named command in PathPlanner events.
+        //   - Teleop: scheduled in teleopInit() to avoid conflicting with auto commands.
+        //   - IntakeSubsystem.periodic(): auto-homes if the robot boots on the limit switch.
 
         dashboardService = new RobotDashboardService(new RobotDashboardService.Actions() {
             @Override
@@ -436,6 +435,28 @@ public class RobotContainer {
 
     // =========================================================================
     // CONTROLLER BINDINGS
+    //
+    // CURRENT CONTROL MAP (2026 REBUILT — climber disabled):
+    //
+    //  DRIVER (Port 0):
+    //    Left Stick ........... Field-relative translation (forward/strafe)
+    //    Right Stick .......... Field-relative rotation
+    //    Right Trigger ........ Precision mode (25% speed)
+    //    Left Bumper (hold) ... Robot-relative mode override
+    //    Y button ............. Zero gyro heading
+    //    B button ............. Emergency stop drive
+    //    X button (hold) ...... X-Lock (resist pushing)
+    //
+    //  OPERATOR (Port 1):
+    //    Left Stick Y ......... Manual hopper control
+    //    Right Stick Y ........ Manual intake tilt (was climber — changed when climber disabled)
+    //    Right Trigger ........ Vision align-and-shoot
+    //    Right Bumper ......... Fallback shoot (no vision)
+    //    Left Trigger (hold) .. Intake roller forward (stall-protected)
+    //    Left Bumper (hold) ... Intake roller reverse / eject
+    //    Y button ............. Toggle intake tilt (deploy/stow)
+    //    X button ............. Re-home intake
+    //
     // =========================================================================
     private void configureBindings() {
 
@@ -733,7 +754,7 @@ public class RobotContainer {
                 HubActivityTracker.secondsUntilNextShiftChange(),
                 // System health
                 batteryVoltage,
-                batteryVoltage < 7.0,
+                batteryVoltage < Constants.RobotConstants.BROWNOUT_ALERT_VOLTAGE,
                 RobotController.isBrownedOut(),
                 // Auto
                 getSelectedAutoName(),

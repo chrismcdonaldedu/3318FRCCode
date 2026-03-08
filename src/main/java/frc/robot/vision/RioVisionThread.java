@@ -73,6 +73,8 @@ public class RioVisionThread extends Thread {
         double lastGrabErrorLogSec = Double.NEGATIVE_INFINITY;
         boolean firstFrameLogged = false;
         long frameCount = 0;
+        int consecutiveGrabFailures = 0;
+        boolean disconnectLogged = false;
 
         try {
             UsbCameraInfo[] cameras = CameraServerJNI.enumerateUsbCameras();
@@ -130,17 +132,39 @@ public class RioVisionThread extends Thread {
                 if (frameTime == 0) {
                     // Frame grab failed — camera probably disconnected.
                     // Retry on next iteration; main loop sees stale result.
+                    consecutiveGrabFailures++;
                     double nowSec = Timer.getFPGATimestamp();
                     String error = cvSink.getError();
                     if (error == null || error.isBlank()) {
                         error = "unknown cscore error";
                     }
-                    cameraDebugInfo.set(cameraDebugInfo.get().withError("GRAB_FAILED", error));
+                    // After sustained failures, flag camera as disconnected so the
+                    // operator knows vision is down (not just a transient glitch).
+                    if (consecutiveGrabFailures >= 30 && !disconnectLogged) {
+                        System.err.println("[RioVisionThread] CAMERA DISCONNECTED — "
+                                + consecutiveGrabFailures + " consecutive grab failures. "
+                                + "Check USB connection.");
+                        cameraDebugInfo.set(cameraDebugInfo.get()
+                                .withError("CAMERA_DISCONNECTED", error));
+                        disconnectLogged = true;
+                    } else {
+                        cameraDebugInfo.set(cameraDebugInfo.get().withError("GRAB_FAILED", error));
+                    }
                     if (nowSec - lastGrabErrorLogSec >= 1.0) {
-                        System.err.println("[RioVisionThread] grabFrame() failed: " + error);
+                        System.err.println("[RioVisionThread] grabFrame() failed ("
+                                + consecutiveGrabFailures + " consecutive): " + error);
                         lastGrabErrorLogSec = nowSec;
                     }
+                    // Clear the latest result so main loop doesn't use stale data
+                    latestResult.set(null);
                     continue;
+                }
+
+                // Frame received successfully — reset disconnect tracking
+                consecutiveGrabFailures = 0;
+                if (disconnectLogged) {
+                    System.out.println("[RioVisionThread] Camera reconnected — frames resuming.");
+                    disconnectLogged = false;
                 }
 
                 double timestampSec = Timer.getFPGATimestamp();

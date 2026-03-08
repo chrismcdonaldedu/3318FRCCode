@@ -44,6 +44,11 @@ public class ShooterSubsystem extends SubsystemBase {
     private double cachedLeftRPS = 0;
     private double cachedRightRPS = 0;
 
+    // The currently commanded target RPS (updated by setShooterVelocity).
+    // Used by periodic() so the dashboard AtSpeed indicator reflects the actual target,
+    // not just the default TARGET_RPS.
+    private double currentTargetRPS = Constants.Shooter.TARGET_RPS;
+
     // --------------------------------------------------------------------------
     // Constructor: configure both shooter motors identically
     // --------------------------------------------------------------------------
@@ -56,9 +61,9 @@ public class ShooterSubsystem extends SubsystemBase {
         cfg.MotorOutput.NeutralMode = NeutralModeValue.Coast;
 
         // Current limiting protects the motors from stall damage
-        cfg.CurrentLimits.StatorCurrentLimit       = 80;
+        cfg.CurrentLimits.StatorCurrentLimit       = Constants.Shooter.STATOR_CURRENT_LIMIT_A;
         cfg.CurrentLimits.StatorCurrentLimitEnable = true;
-        cfg.CurrentLimits.SupplyCurrentLimit       = 60;
+        cfg.CurrentLimits.SupplyCurrentLimit       = Constants.Shooter.SUPPLY_CURRENT_LIMIT_A;
         cfg.CurrentLimits.SupplyCurrentLimitEnable = true;
 
         // Velocity PID (Slot 0)
@@ -99,7 +104,7 @@ public class ShooterSubsystem extends SubsystemBase {
         SmartDashboard.putNumber("Shooter/LeftRPS", cachedLeftRPS);
         SmartDashboard.putNumber("Shooter/RightRPS", cachedRightRPS);
         SmartDashboard.putBoolean("Shooter/AtSpeed",
-                isAtSpeed(Constants.Shooter.TARGET_RPS));
+                isAtSpeed(currentTargetRPS));
     }
 
     // --------------------------------------------------------------------------
@@ -109,6 +114,7 @@ public class ShooterSubsystem extends SubsystemBase {
     // Call this before feeding a game piece so wheels are already up to speed.
     // --------------------------------------------------------------------------
     public void setShooterVelocity(double targetRPS) {
+        currentTargetRPS = targetRPS;
         leftShooter.setControl(velocityRequest.withVelocity(targetRPS));
         rightShooter.setControl(velocityRequest.withVelocity(-targetRPS));
     }
@@ -197,6 +203,7 @@ public class ShooterSubsystem extends SubsystemBase {
     // Stops both shooter motors (they will coast to a stop).
     // --------------------------------------------------------------------------
     public void stop() {
+        currentTargetRPS = Constants.Shooter.TARGET_RPS;
         leftShooter.stopMotor();
         rightShooter.stopMotor();
     }

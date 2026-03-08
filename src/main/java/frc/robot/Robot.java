@@ -58,7 +58,7 @@ public class Robot extends TimedRobot {
         // you're near brownout (6.3V) helps operators manage power consumption.
         double batteryVoltage = RobotController.getBatteryVoltage();
         SmartDashboard.putNumber("Robot/BatteryVoltage", batteryVoltage);
-        SmartDashboard.putBoolean("Robot/BrownoutAlert", batteryVoltage < 7.0);
+        SmartDashboard.putBoolean("Robot/BrownoutAlert", batteryVoltage < Constants.RobotConstants.BROWNOUT_ALERT_VOLTAGE);
         SmartDashboard.putBoolean("Robot/IsBrownout", RobotController.isBrownedOut());
     }
 
@@ -81,7 +81,11 @@ public class Robot extends TimedRobot {
         robotContainer.setCurrentAutoCommand(autonomousCommand);
 
         if (autonomousCommand != null) {
-            CommandScheduler.getInstance().schedule(autonomousCommand);
+            // Wrap the auto command with a global timeout to prevent a stuck path
+            // from running into teleop. teleopInit() also cancels it, but this
+            // provides a belt-and-suspenders safeguard.
+            CommandScheduler.getInstance().schedule(
+                    autonomousCommand.withTimeout(Constants.RobotConstants.AUTO_TIMEOUT_SEC));
         } else {
             System.out.println("[Robot] No autonomous command selected.");
         }
@@ -105,6 +109,11 @@ public class Robot extends TimedRobot {
             autonomousCommand.cancel();
         }
         robotContainer.setCurrentAutoCommand(null);
+
+        // Home the intake at the start of teleop if it hasn't been homed yet.
+        // Not scheduled at boot to avoid conflicting with auto commands that
+        // register their own "HomeIntake" named command.
+        CommandScheduler.getInstance().schedule(robotContainer.getIntakeHomeCommand());
     }
 
     // --------------------------------------------------------------------------

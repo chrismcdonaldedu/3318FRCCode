@@ -139,9 +139,9 @@ public class SwerveModule {
         TalonFXConfiguration driveCfg = new TalonFXConfiguration();
         driveCfg.MotorOutput.NeutralMode = NeutralModeValue.Brake;
         driveCfg.MotorOutput.Inverted = invertedValue(driveInverted);
-        driveCfg.CurrentLimits.StatorCurrentLimit       = 60;
+        driveCfg.CurrentLimits.StatorCurrentLimit       = Constants.Swerve.DRIVE_STATOR_CURRENT_LIMIT_A;
         driveCfg.CurrentLimits.StatorCurrentLimitEnable = true;
-        driveCfg.CurrentLimits.SupplyCurrentLimit       = 40;
+        driveCfg.CurrentLimits.SupplyCurrentLimit       = Constants.Swerve.DRIVE_SUPPLY_CURRENT_LIMIT_A;
         driveCfg.CurrentLimits.SupplyCurrentLimitEnable = true;
         driveCfg.Slot0.kS = Constants.Swerve.DRIVE_kS;
         driveCfg.Slot0.kV = Constants.Swerve.DRIVE_kV;
@@ -153,7 +153,7 @@ public class SwerveModule {
         TalonFXConfiguration steerCfg = new TalonFXConfiguration();
         steerCfg.MotorOutput.NeutralMode = NeutralModeValue.Brake;
         steerCfg.MotorOutput.Inverted = invertedValue(steerInverted);
-        steerCfg.CurrentLimits.StatorCurrentLimit       = 40;
+        steerCfg.CurrentLimits.StatorCurrentLimit       = Constants.Swerve.STEER_STATOR_CURRENT_LIMIT_A;
         steerCfg.CurrentLimits.StatorCurrentLimitEnable = true;
         if (Constants.Swerve.USE_PHOENIX_PRO_FEATURES) {
             // FusedCANcoder: TalonFX fuses internal encoder with CANcoder

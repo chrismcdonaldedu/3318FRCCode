@@ -259,7 +259,12 @@ public class AlignAndShootCommand extends Command {
                 Constants.Vision.TAG_HEIGHT_M,
                 Constants.Vision.FOCAL_LENGTH_PIXELS);
         if (!Double.isFinite(distanceM) || distanceM <= 0) {
-            distanceM = estimateDistanceFromPitch(result.pitchDeg());
+            double pitchFallback = estimateDistanceFromPitch(result.pitchDeg());
+            System.out.println("[AlignAndShoot] Primary distance invalid ("
+                    + String.format("%.2f", distanceM)
+                    + "m), using pitch-based fallback: "
+                    + String.format("%.2f", pitchFallback) + "m");
+            distanceM = pitchFallback;
         }
         calculatedRPS = ShooterSubsystem.calculateTargetRPS(distanceM);
         telemetryTargetRps = calculatedRPS;
