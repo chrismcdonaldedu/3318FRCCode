@@ -3,6 +3,7 @@ package frc.dashboard;
 import java.awt.BasicStroke;
 import java.awt.BorderLayout;
 import java.awt.Color;
+import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.FontMetrics;
@@ -23,8 +24,10 @@ import javax.swing.Box;
 import javax.swing.BoxLayout;
 import javax.swing.JButton;
 import javax.swing.JComponent;
+import javax.swing.DefaultListCellRenderer;
 import javax.swing.JComboBox;
 import javax.swing.JFrame;
+import javax.swing.JList;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JProgressBar;
@@ -426,6 +429,7 @@ public class DashboardFrame extends JFrame {
         visionStreamModeCombo.setBackground(CARD_ALT);
         visionStreamModeCombo.setForeground(TEXT);
         visionStreamModeCombo.setFocusable(false);
+        visionStreamModeCombo.setRenderer(createDarkComboRenderer());
         visionStreamModeCombo.addActionListener(e -> updateVisionStreamSelection());
 
         visionStreamEnabledToggle = new JToggleButton("Live");
@@ -577,6 +581,7 @@ public class DashboardFrame extends JFrame {
         autoChooserCombo.setBackground(CARD_ALT);
         autoChooserCombo.setForeground(TEXT);
         autoChooserCombo.setFocusable(false);
+        autoChooserCombo.setRenderer(createDarkComboRenderer());
         autoChooserCombo.addActionListener(e -> {
             if (updatingAutoChooserModel) {
                 return;
@@ -655,6 +660,7 @@ public class DashboardFrame extends JFrame {
         swerveModuleCombo.setBackground(CARD_ALT);
         swerveModuleCombo.setForeground(TEXT);
         swerveModuleCombo.setFocusable(false);
+        swerveModuleCombo.setRenderer(createDarkComboRenderer());
 
         swerveCalibrateButton = createCommandButton(
                 "Read Calibration",
@@ -713,6 +719,24 @@ public class DashboardFrame extends JFrame {
         JLabel label = new JLabel(text);
         styleCompactLabel(label);
         return label;
+    }
+
+    private DefaultListCellRenderer createDarkComboRenderer() {
+        return new DefaultListCellRenderer() {
+            @Override
+            public Component getListCellRendererComponent(
+                    JList<?> list, Object value, int index, boolean isSelected, boolean cellHasFocus) {
+                super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
+                if (isSelected) {
+                    setBackground(BUTTON_ACTIVE);
+                    setForeground(TEXT);
+                } else {
+                    setBackground(CARD_ALT);
+                    setForeground(TEXT);
+                }
+                return this;
+            }
+        };
     }
 
     // =========================================================================
