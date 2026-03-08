@@ -89,7 +89,7 @@ public class IntakeSubsystem extends SubsystemBase {
         // Tilt position PID (built into SparkMax)
         tiltConfig.closedLoop.p(Constants.Intake.TILT_kP);
         tiltConfig.closedLoop.i(0.0);  // no integral — it causes windup in position control
-        tiltConfig.closedLoop.d(0.0);  // add D if you see oscillation
+        tiltConfig.closedLoop.d(Constants.Intake.TILT_kD);
         tiltMotor.configure(tiltConfig, ResetMode.kNoResetSafeParameters, PersistMode.kNoPersistParameters);
 
         // ---- Roller motor (TalonFX) configuration ----

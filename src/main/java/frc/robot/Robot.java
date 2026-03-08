@@ -124,4 +124,20 @@ public class Robot extends TimedRobot {
 
     @Override
     public void testPeriodic() {}
+
+    // --------------------------------------------------------------------------
+    // simulationInit() / simulationPeriodic() — desktop simulation support
+    // --------------------------------------------------------------------------
+    @Override
+    public void simulationInit() {
+        // Called once when the simulation GUI starts.
+        // Add physics simulation models here if needed (e.g., FlywheelSim,
+        // SingleJointedArmSim for the intake tilt).
+    }
+
+    @Override
+    public void simulationPeriodic() {
+        // Called every 20ms during simulation.
+        // Update physics models and feed simulated sensor values here.
+    }
 }

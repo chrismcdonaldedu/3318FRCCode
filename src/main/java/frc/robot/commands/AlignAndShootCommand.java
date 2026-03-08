@@ -112,7 +112,9 @@ public class AlignAndShootCommand extends Command {
         telemetryLastAbortReason = "";
 
         if (!HubActivityTracker.isOurHubActive()) {
-            System.out.println("[AlignAndShoot] WARNING: Alliance HUB is currently INACTIVE!");
+            double secsToShift = HubActivityTracker.secondsUntilNextShiftChange();
+            System.out.println("[AlignAndShoot] WARNING: Alliance HUB is INACTIVE! "
+                    + String.format("%.1fs", secsToShift) + " until next shift change.");
             SmartDashboard.putBoolean("AlignShoot/HubInactiveWarning", true);
         } else {
             SmartDashboard.putBoolean("AlignShoot/HubInactiveWarning", false);
@@ -323,8 +325,17 @@ public class AlignAndShootCommand extends Command {
 
     private boolean isShotGeometryFeasible(VisionResult result) {
         double pitchDeg = result.pitchDeg();
+        double yawDeg = result.yawDeg();
         SmartDashboard.putNumber("AlignShoot/TargetPitchDeg", pitchDeg);
+        SmartDashboard.putNumber("AlignShoot/YawGeometryCheck", yawDeg);
         telemetryPitchDeg = pitchDeg;
+
+        // Reject shots where the robot is facing far off-target.
+        // The PID will align us, but if yaw is wildly wrong the target
+        // may be a misdetection or the wrong tag entirely.
+        if (Math.abs(yawDeg) > Constants.Vision.YAW_TOLERANCE_DEG * 10) {
+            return false;
+        }
 
         return isShotPitchFeasible(pitchDeg);
     }

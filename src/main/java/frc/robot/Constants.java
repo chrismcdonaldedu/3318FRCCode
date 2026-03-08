@@ -346,8 +346,11 @@ public final class Constants {
         // TUNE ME: Check your actual tilt gearbox ratio!
         public static final double TILT_POS_CONV_DEG = 360.0 / 10.0;  // TUNE ME
 
-        // Tilt position PID (SparkMax built-in)
-        public static final double TILT_kP = 0.05;  // TUNE ME
+        // Tilt position PID (SparkMax built-in, units are power-per-degree)
+        // 10:1 NEO with gravity load: kP=0.15 gives ~15% power at 1° error,
+        // kD=0.005 damps oscillation without fighting the setpoint.
+        public static final double TILT_kP = 0.15;  // TUNE ME
+        public static final double TILT_kD = 0.005; // TUNE ME
 
         // Power used to slowly drive toward the home limit switch
         public static final double HOME_POWER       = -0.15;

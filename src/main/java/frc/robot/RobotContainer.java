@@ -648,6 +648,8 @@ public class RobotContainer {
         // 2026 REBUILT: Track HUB activity shifts for operator awareness.
         // Publishes to SmartDashboard so operators know when to shoot vs. collect.
         HubActivityTracker.isOurHubActive();
+        SmartDashboard.putNumber("HUB/SecondsToNextShift",
+                HubActivityTracker.secondsUntilNextShiftChange());
     }
 
     private DashboardSnapshot buildDashboardSnapshot() {
@@ -726,6 +728,9 @@ public class RobotContainer {
                 AlignAndShootCommand.getTelemetryLastAbortReason(),
                 ready.ready(),
                 ready.reason(),
+                // 2026 REBUILT: HUB shift activity
+                HubActivityTracker.isOurHubActive(),
+                HubActivityTracker.secondsUntilNextShiftChange(),
                 // System health
                 batteryVoltage,
                 batteryVoltage < 7.0,

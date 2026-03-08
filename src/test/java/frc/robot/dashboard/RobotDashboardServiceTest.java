@@ -461,6 +461,9 @@ class RobotDashboardServiceTest {
                 "",
                 false,
                 "",
+                // 2026 REBUILT: HUB shift activity
+                true,
+                25.0,
                 // System health
                 12.5,
                 false,

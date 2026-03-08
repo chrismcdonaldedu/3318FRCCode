@@ -75,6 +75,10 @@ public class RobotDashboardService {
     private final BooleanPublisher readyToScorePub;
     private final StringPublisher readyReasonPub;
 
+    // 2026 REBUILT: HUB shift activity
+    private final BooleanPublisher hubActivePub;
+    private final DoublePublisher hubSecondsToNextShiftPub;
+
     // System health
     private final DoublePublisher batteryVoltagePub;
     private final BooleanPublisher brownoutAlertPub;
@@ -238,6 +242,10 @@ public class RobotDashboardService {
         readyToScorePub = table.getBooleanTopic("shot/ready").publish();
         readyReasonPub = table.getStringTopic("shot/ready_reason").publish();
 
+        // 2026 REBUILT: HUB shift activity
+        hubActivePub = table.getBooleanTopic("hub/active").publish();
+        hubSecondsToNextShiftPub = table.getDoubleTopic("hub/seconds_to_next_shift").publish();
+
         // System health
         batteryVoltagePub = table.getDoubleTopic("health/battery_voltage").publish();
         brownoutAlertPub = table.getBooleanTopic("health/brownout_alert").publish();
@@ -399,6 +407,10 @@ public class RobotDashboardService {
 
         readyToScorePub.set(snapshot.readyToScore());
         readyReasonPub.set(snapshot.readyReason());
+
+        // 2026 REBUILT: HUB shift activity
+        hubActivePub.set(snapshot.hubActive());
+        hubSecondsToNextShiftPub.set(snapshot.hubSecondsToNextShift());
 
         // System health
         batteryVoltagePub.set(snapshot.batteryVoltage());
