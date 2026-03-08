@@ -565,10 +565,13 @@ public class RobotContainer {
         //         }, climber));
 
         // Right Trigger: Vision-required align-and-shoot (operator controls scoring).
+        // Uses unless() to prevent re-triggering while a shoot command is already active.
         operatorController.rightTrigger().onTrue(
                 Commands.sequence(
                         Commands.runOnce(() -> logControlEvent("Operator:RT", "AlignAndShoot requested")),
-                        buildAlignAndShootCommand()));
+                        buildAlignAndShootCommand()
+                                .withTimeout(Constants.Auto.AUTO_SHOOT_TIMEOUT_SEC))
+                        .unless(() -> AlignAndShootCommand.isTelemetryCommandActive()));
 
         // Right Bumper: OVERRIDE shot at fallback speed (no alignment/vision required).
         operatorController.rightBumper().onTrue(
@@ -794,18 +797,29 @@ public class RobotContainer {
     }
 
     private Command buildIntakeTiltToggleCommand() {
-        return Commands.runOnce(() -> {
-            if (!intake.isHomed()) {
-                System.out.println("[RobotContainer] Intake tilt toggle ignored: intake is not homed.");
-                return;
-            }
-
-            double midpoint = (Constants.Intake.INTAKE_DOWN_DEG + Constants.Intake.INTAKE_STOW_DEG) / 2.0;
-            boolean shouldDeploy = intake.getTiltPositionDeg() < midpoint;
-            intake.setTiltPosition(
-                    shouldDeploy ? Constants.Intake.INTAKE_DOWN_DEG
-                                 : Constants.Intake.INTAKE_STOW_DEG);
-        }, intake).withName("IntakeTiltToggle");
+        // Sustained command that holds the PID setpoint until interrupted by the
+        // operator moving the right stick (which activates the default tilt command).
+        // This prevents the default command from immediately overriding the PID.
+        // Manual stick override is intentionally allowed as a safety valve.
+        return Commands.startEnd(
+                () -> {
+                    if (!intake.isHomed()) {
+                        System.out.println("[RobotContainer] Intake tilt toggle ignored: intake is not homed.");
+                        return;
+                    }
+                    double midpoint = (Constants.Intake.INTAKE_DOWN_DEG + Constants.Intake.INTAKE_STOW_DEG) / 2.0;
+                    boolean shouldDeploy = intake.getTiltPositionDeg() < midpoint;
+                    intake.setTiltPosition(
+                            shouldDeploy ? Constants.Intake.INTAKE_DOWN_DEG
+                                         : Constants.Intake.INTAKE_STOW_DEG);
+                },
+                () -> { /* stop is handled by default command resuming */ },
+                intake
+        ).until(() -> {
+            // End when the operator moves the right stick (manual override)
+            double tiltInput = Math.abs(operatorController.getRightY());
+            return tiltInput > Constants.Swerve.JOYSTICK_DEADBAND;
+        }).withTimeout(3.0).withName("IntakeTiltToggle");
     }
 
     private Command buildIntakeHomeCommand() {
@@ -826,8 +840,9 @@ public class RobotContainer {
                         () -> !intake.isHomed()),
                 // Deploy arm to pickup position
                 Commands.runOnce(() -> intake.setTiltPosition(Constants.Intake.INTAKE_DOWN_DEG), intake),
-                // Spin rollers with stall detection — auto-reverses if jammed
-                new IntakeRollerCommand(intake, 0.8).withTimeout(2.0),
+                // Spin rollers with stall detection — auto-reverses if jammed.
+                // 4-second timeout allows time to drive over fuel and intake it.
+                new IntakeRollerCommand(intake, 0.8).withTimeout(4.0),
                 // Stop rollers and leave arm down (ready to stow)
                 Commands.runOnce(() -> intake.setRollerPower(0.0), intake))
                 .withName("AutoIntakeFuel");

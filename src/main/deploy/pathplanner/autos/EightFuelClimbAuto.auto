@@ -45,12 +45,6 @@
           "data": {
             "name": "AutoShoot"
           }
-        },
-        {
-          "type": "named",
-          "data": {
-            "name": "Level1Climb"
-          }
         }
       ]
     }

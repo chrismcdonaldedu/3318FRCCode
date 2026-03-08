@@ -68,8 +68,9 @@ public class AlignAndShootCommand extends Command {
 
     private static final double ALIGN_TIMEOUT_SEC = 3.0;
 
-    // Height of the HUB tags (for pitch-based distance estimation)
-    private static final double HUB_TAG_HEIGHT_M = 1.124;
+    // Height of the HUB tags above ground (for pitch-based distance estimation).
+    // This is the tag's vertical POSITION on the field, NOT its physical size.
+    // Uses Constants.Shooter.HUB_SCORING_HEIGHT_M to avoid duplicate constants.
 
     // --------------------------------------------------------------------------
     // Constructor
@@ -335,7 +336,7 @@ public class AlignAndShootCommand extends Command {
     private double estimateDistanceFromPitch(double targetPitchDeg) {
         double totalPitchRad = Constants.Vision.CAMERA_PITCH_RAD
                 + Math.toRadians(targetPitchDeg);
-        double heightDiff = HUB_TAG_HEIGHT_M - Constants.Vision.CAMERA_UP_M;
+        double heightDiff = Constants.Shooter.HUB_SCORING_HEIGHT_M - Constants.Vision.CAMERA_UP_M;
         double tanPitch = Math.tan(totalPitchRad);
         if (Math.abs(tanPitch) < 1e-6) return Double.NaN;
         return heightDiff / tanPitch;
