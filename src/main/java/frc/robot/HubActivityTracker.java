@@ -7,19 +7,23 @@
 //
 // GAME MECHANIC:
 //   - Both HUBs are active during AUTO (20 sec) and END GAME (last 30 sec)
-//   - The alliance that scores MORE in auto has their HUB INACTIVE first
+//   - The alliance that LOSES auto has their HUB go INACTIVE first in teleop
+//     (the auto winner is rewarded with their HUB staying active first)
 //   - Teleop is divided into: Transition (10s), Shift1-4 (25s each)
-//   - Game Data from FMS ('R' or 'B') tells which alliance goes inactive first
+//   - Game Data from FMS: first char tells which alliance goes inactive first
 //   - If auto is tied, FMS randomly selects
 //
-// SHIFT TIMING (from match time remaining):
-//   2:40 - 2:20  = Auto         → BOTH active
-//   2:20 - 2:10  = Transition   → BOTH active
-//   2:10 - 1:45  = Shift 1      → alternating
-//   1:45 - 1:20  = Shift 2      → alternating (opposite)
-//   1:20 - 0:55  = Shift 3      → alternating (same as Shift 1)
-//   0:55 - 0:30  = Shift 4      → alternating (same as Shift 2)
-//   0:30 - 0:00  = End Game     → BOTH active
+// SHIFT TIMING (DriverStation.getMatchTime() counts DOWN from 140 in teleop):
+//   140 - 130  = Transition   → BOTH active
+//   130 - 105  = Shift 1      → alternating
+//   105 -  80  = Shift 2      → alternating (opposite)
+//    80 -  55  = Shift 3      → alternating (same as Shift 1)
+//    55 -  30  = Shift 4      → alternating (same as Shift 2)
+//    30 -   0  = End Game     → BOTH active
+//
+// IMPORTANT: Verify these boundaries and Game Data interpretation against the
+// official 2026 FMS Game Data protocol at your first event. Practice mode
+// may not provide Game Data or accurate match time.
 //
 // USAGE:
 //   Call HubActivityTracker.isOurHubActive() in teleop to decide whether to
@@ -78,16 +82,20 @@ public final class HubActivityTracker {
             shiftNumber = 4;
         }
 
-        // Game Data tells us which alliance goes inactive first
-        // 'R' = Red goes inactive in Shifts 1 & 3 (meaning Red won auto)
-        // 'B' = Blue goes inactive in Shifts 1 & 3 (meaning Blue won auto)
+        // Game Data tells us which alliance goes inactive first.
+        // 'R' = Red goes inactive in Shifts 1 & 3 (Red LOST auto; winner stays active first)
+        // 'B' = Blue goes inactive in Shifts 1 & 3 (Blue LOST auto; winner stays active first)
         // If Game Data is empty, auto was tied — FMS randomly chose.
+        // VERIFY: Confirm this interpretation at your first competition event.
+        //         An inversion here means shooting during the wrong windows.
         String gameData = DriverStation.getGameSpecificMessage();
         boolean weGoInactiveFirst = false;
+        boolean gameDataAvailable = false;
 
         if (gameData != null && !gameData.isEmpty()) {
             var alliance = DriverStation.getAlliance();
             if (alliance.isPresent()) {
+                gameDataAvailable = true;
                 char inactiveFirst = gameData.charAt(0);
                 if (alliance.get() == DriverStation.Alliance.Red) {
                     weGoInactiveFirst = (inactiveFirst == 'R');
@@ -95,6 +103,17 @@ public final class HubActivityTracker {
                     weGoInactiveFirst = (inactiveFirst == 'B');
                 }
             }
+        }
+
+        // If Game Data is unavailable (practice mode), assume our HUB is active
+        // to avoid suppressing shots. Better to shoot into an inactive HUB (0 pts)
+        // than to hold fire when the HUB is actually active.
+        if (!gameDataAvailable) {
+            SmartDashboard.putBoolean("HUB/Active", true);
+            SmartDashboard.putNumber("HUB/ShiftNumber", shiftNumber);
+            SmartDashboard.putNumber("HUB/MatchTimeRemaining", matchTime);
+            SmartDashboard.putBoolean("HUB/GameDataAvailable", false);
+            return true;
         }
 
         // Odd shifts (1, 3): the "inactive first" alliance is inactive
@@ -111,6 +130,7 @@ public final class HubActivityTracker {
         SmartDashboard.putBoolean("HUB/Active", active);
         SmartDashboard.putNumber("HUB/ShiftNumber", shiftNumber);
         SmartDashboard.putNumber("HUB/MatchTimeRemaining", matchTime);
+        SmartDashboard.putBoolean("HUB/GameDataAvailable", true);
 
         return active;
     }

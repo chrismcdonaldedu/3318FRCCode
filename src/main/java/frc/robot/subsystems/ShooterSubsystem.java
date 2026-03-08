@@ -13,6 +13,7 @@
 package frc.robot.subsystems;
 
 import com.ctre.phoenix6.CANBus;
+import com.ctre.phoenix6.StatusCode;
 import com.ctre.phoenix6.configs.TalonFXConfiguration;
 import com.ctre.phoenix6.controls.VelocityVoltage;
 import com.ctre.phoenix6.hardware.TalonFX;
@@ -70,8 +71,8 @@ public class ShooterSubsystem extends SubsystemBase {
         cfg.Slot0.kV = Constants.Shooter.SHOOTER_kV;   // 0.12 for Kraken at 12V
         cfg.Slot0.kP = Constants.Shooter.SHOOTER_kP;   // TUNE ME
 
-        leftShooter.getConfigurator().apply(cfg);
-        rightShooter.getConfigurator().apply(cfg);
+        applyWithRetry(() -> leftShooter.getConfigurator().apply(cfg), "Left shooter config");
+        applyWithRetry(() -> rightShooter.getConfigurator().apply(cfg), "Right shooter config");
 
         // Reduce CAN status frame rates — shooter doesn't need high-frequency updates.
         // Velocity at 10 Hz is enough for isAtSpeed() checks.
@@ -198,6 +199,33 @@ public class ShooterSubsystem extends SubsystemBase {
     public void stop() {
         leftShooter.stopMotor();
         rightShooter.stopMotor();
+    }
+
+    // --------------------------------------------------------------------------
+    // CAN config retry logic — matches swerve module pattern
+    // --------------------------------------------------------------------------
+    private static final int CONFIG_APPLY_RETRIES = 5;
+
+    @FunctionalInterface
+    private interface ConfigApplier {
+        StatusCode apply();
+    }
+
+    private static void applyWithRetry(ConfigApplier applier, String action) {
+        StatusCode lastCode = StatusCode.StatusCodeNotInitialized;
+        for (int i = 0; i < CONFIG_APPLY_RETRIES; i++) {
+            lastCode = applier.apply();
+            if (lastCode.isOK()) {
+                if (i > 0) {
+                    System.out.println("[ShooterSubsystem] " + action + " succeeded on attempt " + (i + 1));
+                }
+                return;
+            }
+            System.out.println("[ShooterSubsystem] " + action + " attempt " + (i + 1)
+                    + " failed: " + lastCode.getName());
+        }
+        System.err.println("[ShooterSubsystem] ERROR: " + action + " failed after "
+                + CONFIG_APPLY_RETRIES + " attempts. Last status: " + lastCode.getName());
     }
 
     // --------------------------------------------------------------------------

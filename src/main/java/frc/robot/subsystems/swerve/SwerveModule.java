@@ -80,6 +80,7 @@ public class SwerveModule {
     private final double cancoderOffsetRot;
 
     private Rotation2d lastAngle = new Rotation2d();
+    private Rotation2d cachedSteerAngle = new Rotation2d();
 
     // Reusable control request objects — avoids creating garbage every loop
     // VelocityVoltage: tells the drive motor "spin at exactly X rotations/sec"
@@ -218,6 +219,7 @@ public class SwerveModule {
         steerMotor.getVelocity().setUpdateFrequency(10);
         steerMotor.getDeviceTemp().setUpdateFrequency(1);
 
+        refreshSteerAngle();
         lastAngle = getSteerAngle();
     }
 
@@ -280,8 +282,14 @@ public class SwerveModule {
     // CANcoder at boot, periodically re-synced).
     // With FusedCANcoder (Pro), this returns the fused position.
     // --------------------------------------------------------------------------
+    /** Refreshes the cached steer angle from CAN. Call once per loop cycle. */
+    public void refreshSteerAngle() {
+        cachedSteerAngle = Rotation2d.fromRotations(steerPosition.refresh().getValueAsDouble());
+    }
+
+    /** Returns the cached steer angle (updated by refreshSteerAngle). */
     public Rotation2d getSteerAngle() {
-        return Rotation2d.fromRotations(steerPosition.refresh().getValueAsDouble());
+        return cachedSteerAngle;
     }
 
     /**
@@ -303,12 +311,13 @@ public class SwerveModule {
         double motorRotations  = drivePosition.refresh().getValueAsDouble();
         // Compensate for coupling: steering the module causes the drive motor
         // to spin slightly. Subtract that parasitic motion for accurate odometry.
-        double steerRotations  = steerPosition.refresh().getValueAsDouble();
+        // Use cached steer angle (already refreshed this cycle) to avoid extra CAN read.
+        double steerRotations  = cachedSteerAngle.getRotations();
         double coupledMotorRot = steerRotations * Constants.Swerve.COUPLE_RATIO;
         double correctedMotorRot = motorRotations - coupledMotorRot;
         double wheelRotations  = correctedMotorRot / Constants.Swerve.DRIVE_GEAR_RATIO;
         double distanceMeters  = wheelRotations * Constants.Swerve.WHEEL_CIRCUMFERENCE_M;
-        return new SwerveModulePosition(distanceMeters, getSteerAngle());
+        return new SwerveModulePosition(distanceMeters, cachedSteerAngle);
     }
 
     public double getDriveTemperatureC() {

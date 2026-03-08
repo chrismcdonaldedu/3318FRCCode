@@ -184,6 +184,11 @@ public class SwerveSubsystem extends SubsystemBase {
     // --------------------------------------------------------------------------
     @Override
     public void periodic() {
+        // Refresh steer angles once per loop to avoid redundant CAN reads
+        for (SwerveModule mod : modules) {
+            mod.refreshSteerAngle();
+        }
+
         // Update the odometry estimate with the latest gyro and wheel data
         poseEstimator.update(getGyroYaw(), getModulePositions());
 
