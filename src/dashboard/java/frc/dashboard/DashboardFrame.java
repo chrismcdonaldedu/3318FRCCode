@@ -89,6 +89,7 @@ public class DashboardFrame extends JFrame {
     private final JLabel readyLabel = new JLabel("NOT READY", SwingConstants.CENTER);
     private final JLabel readyReasonLabel = new JLabel("Reason: --");
     private final JLabel nextActionLabel = new JLabel("Action: --");
+    private final JLabel hubActivityLabel = new JLabel("HUB: --");
 
     // Driver tab: auto selector & execution
     private final JLabel autoSelectorLabel = new JLabel("Auto: --");
@@ -292,6 +293,7 @@ public class DashboardFrame extends JFrame {
 
         styleMetricLabel(readyReasonLabel);
         styleMetricLabel(nextActionLabel);
+        styleMetricLabel(hubActivityLabel);
         styleMetricLabel(autoSelectorLabel);
         styleMetricLabel(autoSourceLabel);
         styleMetricLabel(autoExecutionLabel);
@@ -309,7 +311,7 @@ public class DashboardFrame extends JFrame {
 
         addSideCard(side, buildAutoSelectionCard());
         addSideCard(side, buildPreMatchChecklistCard());
-        addSideCard(side, wrapLabelCard("Shot Readiness", readyLabel, readyReasonLabel, nextActionLabel));
+        addSideCard(side, wrapLabelCard("Shot Readiness", readyLabel, readyReasonLabel, nextActionLabel, hubActivityLabel));
         addSideCard(side, buildChecklistCard());
         addSideCard(side, buildAlignCard());
         addSideCard(side, wrapLabelCard("Command Ack", ackLabel));
@@ -867,6 +869,13 @@ public class DashboardFrame extends JFrame {
         readyLabel.setBackground(data.readyToScore() ? OK : BAD);
         readyReasonLabel.setText("Reason: " + sanitize(data.readyReason()));
         nextActionLabel.setText("Action: " + nextAction(data));
+        if (data.hubActive()) {
+            hubActivityLabel.setText("HUB: ACTIVE");
+            hubActivityLabel.setForeground(OK);
+        } else {
+            hubActivityLabel.setText(String.format("HUB: INACTIVE (%.0fs to shift)", data.hubSecondsToNextShift()));
+            hubActivityLabel.setForeground(BAD);
+        }
 
         // Align pipeline
         alignPhaseLabel.setText("Align phase: " + data.alignState() + (data.alignCommandActive() ? " (ACTIVE)" : ""));

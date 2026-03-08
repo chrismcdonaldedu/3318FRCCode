@@ -35,6 +35,9 @@ public record DashboardSnapshot(
         String alignAbortReason,
         boolean readyToScore,
         String readyReason,
+        // 2026 REBUILT: HUB shift activity
+        boolean hubActive,
+        double hubSecondsToNextShift,
         // System health
         double batteryVoltage,
         boolean brownoutAlert,

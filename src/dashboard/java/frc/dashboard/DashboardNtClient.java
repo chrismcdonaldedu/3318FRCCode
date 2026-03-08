@@ -80,6 +80,11 @@ public class DashboardNtClient implements AutoCloseable {
     private final BooleanSubscriber readySub = table.getBooleanTopic("shot/ready").subscribe(false);
     private final StringSubscriber readyReasonSub = table.getStringTopic("shot/ready_reason").subscribe("");
 
+    // 2026 REBUILT: HUB shift activity
+    private final BooleanSubscriber hubActiveSub = table.getBooleanTopic("hub/active").subscribe(true);
+    private final DoubleSubscriber hubSecondsToNextShiftSub =
+            table.getDoubleTopic("hub/seconds_to_next_shift").subscribe(0.0);
+
     // System health
     private final DoubleSubscriber batteryVoltageSub = table.getDoubleTopic("health/battery_voltage").subscribe(0.0);
     private final BooleanSubscriber brownoutAlertSub = table.getBooleanTopic("health/brownout_alert").subscribe(false);
@@ -303,6 +308,9 @@ public class DashboardNtClient implements AutoCloseable {
                 alignAbortSub.get(),
                 readySub.get(),
                 readyReasonSub.get(),
+                // 2026 REBUILT: HUB shift activity
+                hubActiveSub.get(),
+                hubSecondsToNextShiftSub.get(),
                 // System health
                 batteryVoltageSub.get(),
                 brownoutAlertSub.get(),

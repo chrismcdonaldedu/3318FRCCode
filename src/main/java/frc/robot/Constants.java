@@ -7,7 +7,7 @@
 //
 // TUNING NOTES FOR STUDENTS:
 //   Values marked "TUNE ME" need to be measured or adjusted on the real robot.
-//   Everything else should work as-is for MK4 L2 + Falcon 500 (TalonFX) + Pigeon 2.
+//   Everything else should work as-is for MK4i L2 + Falcon 500 (TalonFX) + Pigeon 2.
 // ============================================================================
 package frc.robot;
 
@@ -271,6 +271,11 @@ public final class Constants {
         // Hold driver right trigger to scale max speed down for fine positioning.
         // 0.25 = 25% of normal speed when precision mode is active.
         public static final double PRECISION_SPEED_SCALE = 0.25;
+
+        // ---- Current limits (centralized) ----
+        public static final int DRIVE_STATOR_CURRENT_LIMIT_A = 60;
+        public static final int DRIVE_SUPPLY_CURRENT_LIMIT_A = 40;
+        public static final int STEER_STATOR_CURRENT_LIMIT_A = 40;
     }
 
     // =========================================================================
@@ -322,6 +327,10 @@ public final class Constants {
         public static final double SHOOTER_kV = 0.12;   // 12V / 100 RPS free speed
         public static final double SHOOTER_kP = 0.08;   // V/RPS error (slightly aggressive for fast spinup)
 
+        // ---- Current limits (centralized) ----
+        public static final int STATOR_CURRENT_LIMIT_A = 80;
+        public static final int SUPPLY_CURRENT_LIMIT_A = 60;
+
         // How close the wheels need to be to target before we consider "at speed"
         public static final double TOLERANCE_RPS = 1.5;
 
@@ -346,8 +355,11 @@ public final class Constants {
         // TUNE ME: Check your actual tilt gearbox ratio!
         public static final double TILT_POS_CONV_DEG = 360.0 / 10.0;  // TUNE ME
 
-        // Tilt position PID (SparkMax built-in)
-        public static final double TILT_kP = 0.05;  // TUNE ME
+        // Tilt position PID (SparkMax built-in, units are power-per-degree)
+        // 10:1 NEO with gravity load: kP=0.15 gives ~15% power at 1° error,
+        // kD=0.005 damps oscillation without fighting the setpoint.
+        public static final double TILT_kP = 0.15;  // TUNE ME
+        public static final double TILT_kD = 0.005; // TUNE ME
 
         // Power used to slowly drive toward the home limit switch
         public static final double HOME_POWER       = -0.15;
@@ -511,6 +523,19 @@ public final class Constants {
     //     // Manual joystick power multiplier for operator control
     //     public static final double MANUAL_POWER_SCALE = 0.6;
     // }
+
+    // =========================================================================
+    // ROBOT-LEVEL CONSTANTS
+    // =========================================================================
+    public static final class RobotConstants {
+        // Alert the operator when battery drops below this voltage.
+        // FRC brownout threshold is 6.3V; we alert earlier to allow reaction time.
+        public static final double BROWNOUT_ALERT_VOLTAGE = 7.0;
+
+        // Maximum duration for an autonomous command before it is forcibly stopped.
+        // Prevents a hung auto from running into teleop.
+        public static final double AUTO_TIMEOUT_SEC = 15.5;
+    }
 
     // =========================================================================
     // OPERATOR INTERFACE (controller port numbers)
