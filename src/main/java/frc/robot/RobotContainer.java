@@ -636,9 +636,10 @@ public class RobotContainer {
         //         }, climber));
 
         // Right Trigger: Vision-required align-and-shoot (operator controls scoring).
+        // Uses whileTrue() so holding the trigger re-executes the shoot routine.
         // Uses unless() to prevent re-triggering while a shoot command is already active.
         // Threshold matches TRIGGER_ACTIVE_THRESHOLD so dashboard and actual trigger agree.
-        operatorController.rightTrigger(TRIGGER_ACTIVE_THRESHOLD).onTrue(
+        operatorController.rightTrigger(TRIGGER_ACTIVE_THRESHOLD).whileTrue(
                 Commands.sequence(
                         Commands.runOnce(() -> logControlEvent("Operator:RT", "AlignAndShoot requested")),
                         buildAlignAndShootCommand()
@@ -646,7 +647,8 @@ public class RobotContainer {
                         .unless(() -> AlignAndShootCommand.isTelemetryCommandActive()));
 
         // Right Bumper: OVERRIDE shot at fallback speed (no alignment/vision required).
-        operatorController.rightBumper().onTrue(
+        // Uses whileTrue() so holding the button re-executes the shoot routine.
+        operatorController.rightBumper().whileTrue(
                 Commands.sequence(
                         Commands.runOnce(() -> logControlEvent("Operator:RB", "Fallback shot requested")),
                         buildFallbackShootCommand()));
