@@ -33,6 +33,7 @@ import edu.wpi.first.cameraserver.CameraServer;
 import edu.wpi.first.cscore.CameraServerJNI;
 import edu.wpi.first.cscore.CvSource;
 import edu.wpi.first.cscore.CvSink;
+import edu.wpi.first.cscore.OpenCvLoader;
 import edu.wpi.first.cscore.MjpegServer;
 import edu.wpi.first.cscore.UsbCamera;
 import edu.wpi.first.cscore.UsbCameraInfo;
@@ -69,8 +70,8 @@ public class RioVisionThread extends Thread {
         CvSource overlayOutput = null;
         MjpegServer overlayServer = null;
         AprilTagDetector detector = null;
-        Mat mat = new Mat();
-        Mat grayMat = new Mat();
+        Mat mat = null;
+        Mat grayMat = null;
         double lastGrabErrorLogSec = Double.NEGATIVE_INFINITY;
         boolean firstFrameLogged = false;
         long frameCount = 0;
@@ -78,6 +79,10 @@ public class RioVisionThread extends Thread {
         boolean disconnectLogged = false;
 
         try {
+            OpenCvLoader.forceLoad();
+            mat = new Mat();
+            grayMat = new Mat();
+
             UsbCameraInfo[] cameras = CameraServerJNI.enumerateUsbCameras();
             String enumeratedSummary = summarizeUsbCameras(cameras);
             UsbCameraInfo configuredCamera = findCameraInfo(cameras, Constants.Vision.CAMERA_DEVICE_ID);
@@ -124,12 +129,16 @@ public class RioVisionThread extends Thread {
             // Configure AprilTag detector for 36h11 tag family
             detector = new AprilTagDetector();
             detector.addFamily("tag36h11");
-        } catch (Exception ex) {
+        } catch (Throwable ex) {
             System.err.println("[RioVisionThread] FATAL: Camera/detector init failed: " + ex.getMessage());
-            cameraDebugInfo.set(cameraDebugInfo.get().withError("INIT_FAILED", ex.getMessage()));
+            cameraDebugInfo.set(cameraDebugInfo.get().withError("INIT_FAILED", formatThrowable(ex)));
             ex.printStackTrace();
-            grayMat.release();
-            mat.release();
+            if (grayMat != null) {
+                grayMat.release();
+            }
+            if (mat != null) {
+                mat.release();
+            }
             return;
         }
 
@@ -336,6 +345,14 @@ public class RioVisionThread extends Thread {
         } catch (Exception ex) {
             return null;
         }
+    }
+
+    private static String formatThrowable(Throwable throwable) {
+        String message = throwable.getMessage();
+        if (message == null || message.isBlank()) {
+            return throwable.getClass().getSimpleName();
+        }
+        return throwable.getClass().getSimpleName() + ": " + message;
     }
 
     private static void annotateFrame(Mat frame, AprilTagDetection[] detections, int[] hubTagIds) {
