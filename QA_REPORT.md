@@ -7,7 +7,7 @@
 
 ## Summary
 
-The codebase is well-structured and extensively documented. The custom Swing dashboard is impressively comprehensive. 26 issues identified below, ranging from critical bugs to code quality concerns, excluding tuning parameters as requested.
+The codebase is well-structured and extensively documented. The custom Swing dashboard is impressively comprehensive. 30 issues identified below, ranging from critical bugs to code quality concerns, excluding tuning parameters as requested.
 
 ---
 
@@ -154,7 +154,27 @@ The codebase is well-structured and extensively documented. The custom Swing das
 **Issue:** The comment reads "IDs 10 and 11 are shooter" but CAN ID 10 is `FRONT_RIGHT_CANCODER` and CAN ID 11 is `BACK_RIGHT_CANCODER`. The shooter motors are actually IDs 16 and 17. The comment also says "Steer is on 19 to avoid conflict with Pigeon on 13" which doesn't correspond to any steer motor assignment (IDs 2, 4, 6, 8 are steers; ID 19 is the hopper).
 **Impact:** Misleading comment could cause confusion during hardware debugging or CAN ID reassignment. No runtime impact.
 
-### 26. `TAG_HEIGHT_M` uses outer tag dimension but `tagPixelHeight()` measures inner corner span
+### 26. Driver B button (emergency stop) only stops for one scheduler cycle
+**File:** `src/main/java/frc/robot/RobotContainer.java:538-541`
+**Issue:** The emergency stop uses `onTrue(Commands.runOnce(() -> stopDrive(), swerve))` which runs for a single 20ms cycle and requires the `swerve` subsystem. This momentarily interrupts the default drive command, but on the very next scheduler cycle the default teleop drive command re-starts and resumes driving from joystick input. The emergency stop has no lasting effect — the robot begins moving again 20ms later if the driver's joysticks are not centered.
+**Impact:** The "emergency stop" button does not actually stop the robot in any meaningful way. The driver must release the joysticks to stop. Consider using `whileTrue` to hold the stop while B is pressed, or switching to an X-lock pattern.
+
+### 27. `buildIntakeGamePieceCommand()` does not wait for arm to reach deploy position
+**File:** `src/main/java/frc/robot/RobotContainer.java:893-896`
+**Issue:** The sequence calls `Commands.runOnce(() -> intake.setTiltPosition(INTAKE_DOWN_DEG), intake)` which sets the PID setpoint and immediately completes, then the next command in the sequence (`IntakeRollerCommand`) starts the rollers. There is no `waitUntil()` checking that the arm has actually reached the deployed position. The arm PID will still be moving the arm while the rollers are already spinning.
+**Impact:** In autonomous, the rollers may start spinning before the intake arm is deployed, reducing pickup reliability. The arm's PID will eventually reach the target, but there's a window where the rollers run while the arm is still in transit.
+
+### 28. `buildIntakeTiltToggleCommand()` holds intake subsystem for 3 seconds when not homed
+**File:** `src/main/java/frc/robot/RobotContainer.java:855-873`
+**Issue:** When `intake.isHomed()` is false, the start lambda on line 858 returns early without setting any position. However, the `startEnd` command still runs — it holds the `intake` subsystem requirement for up to 3 seconds (the `.withTimeout(3.0)`) or until the operator moves the right stick. During this time, the default tilt command is blocked, so the operator cannot use manual stick tilt control.
+**Impact:** If the operator presses Y before homing, intake tilt control is frozen for up to 3 seconds with no feedback about why.
+
+### 29. Auto command cancel in `teleopInit()` references unwrapped command
+**File:** `src/main/java/frc/robot/Robot.java:80-88, 108-109`
+**Issue:** In `autonomousInit()`, `autonomousCommand` is assigned the raw command from `getAutonomousCommand()` (line 80), then `.withTimeout()` is called on line 88 which returns a **new** `ParallelRaceGroup` wrapping the original. The wrapped version is what gets scheduled, but `autonomousCommand` still points to the original unwrapped command. In `teleopInit()`, `autonomousCommand.cancel()` cancels the unwrapped original. This works because WPILib propagates cancellation to composed-command children, but it's fragile — it depends on WPILib's internal composition behavior and the fact that canceling a child of a race group ends the group.
+**Impact:** No current bug due to WPILib internals, but a WPILib update changing composed-command cancellation behavior could cause the timeout wrapper to keep running into teleop. Storing the wrapped command would be more robust.
+
+### 30. `TAG_HEIGHT_M` uses outer tag dimension but `tagPixelHeight()` measures inner corner span
 **File:** `src/main/java/frc/robot/Constants.java:456-457`, `src/main/java/frc/robot/vision/RioVisionThread.java:241-248`
 **Issue:** `TAG_HEIGHT_M = 0.1651` (6.5 inches) is the **outer** dimension of a 36h11 AprilTag (10x10 cells including white border). However, `tagPixelHeight()` in `RioVisionThread` measures the vertical span of the detected corner points, which correspond to the **inner black border boundary** (8x8 cells = 80% of outer size). The self-calibration procedure documented in the code (`f = px * d / TAG_HEIGHT_M`) compensates for this automatically — the computed "focal length" won't be the true optical focal length but will produce correct distances. However, if someone enters the camera's actual optical focal length from a datasheet instead of calibrating, `estimateDistanceM()` will overestimate distance by ~25%.
 **Impact:** No bug if calibration is performed as documented. But the constant names (`TAG_HEIGHT_M`, `FOCAL_LENGTH_PIXELS`) are misleading — the "focal length" is really a combined calibration factor, not the camera's optical parameter. A future developer using the true focal length would get consistently wrong distances and shooter speeds.
