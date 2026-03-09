@@ -300,7 +300,7 @@ tasks.register('packageDashboardWindows') {
                     '--app-version', dashboardPackageVersion.get(),
                     '--vendor', DASHBOARD_APP_VENDOR,
                     '--description', DASHBOARD_APP_DESCRIPTION,
-                    '--java-options', '-Djava.library.path=$APPDIR\\app\\natives',
+                    '--java-options', '-Djava.library.path=$APPDIR\\natives',
                     '--arguments', '--team',
                     '--arguments', '3318'
         }
@@ -340,7 +340,7 @@ tasks.register('packageDashboardWindowsInstaller') {
                     '--vendor', DASHBOARD_APP_VENDOR,
                     '--description', DASHBOARD_APP_DESCRIPTION,
                     '--install-dir', DASHBOARD_APP_NAME,
-                    '--java-options', '-Djava.library.path=$APPDIR\\app\\natives',
+                    '--java-options', '-Djava.library.path=$APPDIR\\natives',
                     '--arguments', '--team',
                     '--arguments', '3318',
                     '--win-shortcut',
