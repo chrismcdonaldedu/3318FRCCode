@@ -7,7 +7,7 @@
 
 ## Summary
 
-The codebase is well-structured and extensively documented. The custom Swing dashboard is impressively comprehensive. 24 issues identified below, ranging from critical bugs to code quality concerns, excluding tuning parameters as requested.
+The codebase is well-structured and extensively documented. The custom Swing dashboard is impressively comprehensive. 25 issues identified below, ranging from critical bugs to code quality concerns, excluding tuning parameters as requested.
 
 ---
 
@@ -148,6 +148,11 @@ The codebase is well-structured and extensively documented. The custom Swing das
 **File:** `src/main/java/frc/robot/subsystems/FeederSubsystem.java`
 **Issue:** The feeder motor SparkMaxConfig does not call `config.inverted(...)`, unlike the adjacent `HopperSubsystem` which explicitly sets `config.inverted(Constants.Hopper.MOTOR_INVERTED)` with the comment "Wired opposite the feeder motor, so invert the SparkMax." This inconsistency suggests the feeder motor direction may rely on the physical wiring being correct rather than being explicitly controlled in software.
 **Impact:** If the feeder motor wiring is changed or a replacement motor is installed with different wiring, the feeder will run backwards with no software-level inversion constant to adjust. Low risk but inconsistent with the hopper's explicit approach.
+
+### 25. `TAG_HEIGHT_M` uses outer tag dimension but `tagPixelHeight()` measures inner corner span
+**File:** `src/main/java/frc/robot/Constants.java:456-457`, `src/main/java/frc/robot/vision/RioVisionThread.java:241-248`
+**Issue:** `TAG_HEIGHT_M = 0.1651` (6.5 inches) is the **outer** dimension of a 36h11 AprilTag (10x10 cells including white border). However, `tagPixelHeight()` in `RioVisionThread` measures the vertical span of the detected corner points, which correspond to the **inner black border boundary** (8x8 cells = 80% of outer size). The self-calibration procedure documented in the code (`f = px * d / TAG_HEIGHT_M`) compensates for this automatically — the computed "focal length" won't be the true optical focal length but will produce correct distances. However, if someone enters the camera's actual optical focal length from a datasheet instead of calibrating, `estimateDistanceM()` will overestimate distance by ~25%.
+**Impact:** No bug if calibration is performed as documented. But the constant names (`TAG_HEIGHT_M`, `FOCAL_LENGTH_PIXELS`) are misleading — the "focal length" is really a combined calibration factor, not the camera's optical parameter. A future developer using the true focal length would get consistently wrong distances and shooter speeds.
 
 ---
 
