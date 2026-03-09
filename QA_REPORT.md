@@ -7,7 +7,7 @@
 
 ## Summary
 
-The codebase is well-structured and extensively documented. The custom Swing dashboard is impressively comprehensive. 30 issues identified below, ranging from critical bugs to code quality concerns, excluding tuning parameters as requested.
+The codebase is well-structured and extensively documented. The custom Swing dashboard is impressively comprehensive. 31 issues identified below, ranging from critical bugs to code quality concerns, excluding tuning parameters as requested.
 
 ---
 
@@ -174,7 +174,12 @@ The codebase is well-structured and extensively documented. The custom Swing das
 **Issue:** In `autonomousInit()`, `autonomousCommand` is assigned the raw command from `getAutonomousCommand()` (line 80), then `.withTimeout()` is called on line 88 which returns a **new** `ParallelRaceGroup` wrapping the original. The wrapped version is what gets scheduled, but `autonomousCommand` still points to the original unwrapped command. In `teleopInit()`, `autonomousCommand.cancel()` cancels the unwrapped original. This works because WPILib propagates cancellation to composed-command children, but it's fragile — it depends on WPILib's internal composition behavior and the fact that canceling a child of a race group ends the group.
 **Impact:** No current bug due to WPILib internals, but a WPILib update changing composed-command cancellation behavior could cause the timeout wrapper to keep running into teleop. Storing the wrapped command would be more robust.
 
-### 30. `TAG_HEIGHT_M` uses outer tag dimension but `tagPixelHeight()` measures inner corner span
+### 30. Dashboard subscribes to CANcoder calibration data that is never continuously published
+**File:** `src/dashboard/java/frc/dashboard/DashboardNtClient.java:148-158`, `src/main/java/frc/robot/dashboard/RobotDashboardService.java`
+**Issue:** The dashboard client subscribes to `cancoder/{corner}_raw_rot` and `cancoder/{corner}_offset_rot` (8 topics) and displays them in the Swerve Tools and Pit tabs. However, `RobotDashboardService` never publishes these keys — it only publishes `cancoder/{corner}_abs_raw_rot` (the live absolute position). The raw/offset calibration values are only published by `CalibrateCANcodersCommand`, which itself has the try-with-resources bug (issue #1) that closes publishers immediately. Even if the calibration command is run, the values are unlikely to reach the dashboard.
+**Impact:** The Swerve Tools calibration display always shows `--` or NaN for raw/offset values, making the calibration workflow dashboard-only incomplete. The SmartDashboard values from the same command do work, so operators must use SmartDashboard instead of the custom dashboard for calibration readout.
+
+### 31. `TAG_HEIGHT_M` uses outer tag dimension but `tagPixelHeight()` measures inner corner span
 **File:** `src/main/java/frc/robot/Constants.java:456-457`, `src/main/java/frc/robot/vision/RioVisionThread.java:241-248`
 **Issue:** `TAG_HEIGHT_M = 0.1651` (6.5 inches) is the **outer** dimension of a 36h11 AprilTag (10x10 cells including white border). However, `tagPixelHeight()` in `RioVisionThread` measures the vertical span of the detected corner points, which correspond to the **inner black border boundary** (8x8 cells = 80% of outer size). The self-calibration procedure documented in the code (`f = px * d / TAG_HEIGHT_M`) compensates for this automatically — the computed "focal length" won't be the true optical focal length but will produce correct distances. However, if someone enters the camera's actual optical focal length from a datasheet instead of calibrating, `estimateDistanceM()` will overestimate distance by ~25%.
 **Impact:** No bug if calibration is performed as documented. But the constant names (`TAG_HEIGHT_M`, `FOCAL_LENGTH_PIXELS`) are misleading — the "focal length" is really a combined calibration factor, not the camera's optical parameter. A future developer using the true focal length would get consistently wrong distances and shooter speeds.
