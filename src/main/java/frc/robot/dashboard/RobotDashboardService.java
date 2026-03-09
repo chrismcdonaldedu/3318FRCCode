@@ -28,7 +28,7 @@ public class RobotDashboardService {
         void selectAutoByName(String autoName);
     }
 
-    private static final String CONTRACT_VERSION = "2026.10.0";
+    private static final String CONTRACT_VERSION = "2026.11.0";
 
     private final Actions actions;
 
@@ -110,7 +110,12 @@ public class RobotDashboardService {
     private final IntegerPublisher cameraFrameCountPub;
     private final DoublePublisher cameraLastFrameTimestampPub;
     private final IntegerPublisher visionTagIdPub;
+    private final BooleanPublisher visionHasTargetPub;
+    private final DoublePublisher visionYawPub;
+    private final DoublePublisher visionPitchPub;
     private final DoublePublisher visionDistancePub;
+    private final DoublePublisher visionTagPixelHeightPub;
+    private final DoublePublisher visionTargetTimestampPub;
 
     // CAN bus health
     private final DoublePublisher canBusUtilizationPub;
@@ -282,7 +287,12 @@ public class RobotDashboardService {
         cameraFrameCountPub = table.getIntegerTopic("vision/camera_frame_count").publish();
         cameraLastFrameTimestampPub = table.getDoubleTopic("vision/camera_last_frame_ts_sec").publish();
         visionTagIdPub = table.getIntegerTopic("vision/tag_id").publish();
+        visionHasTargetPub = table.getBooleanTopic("vision/has_target").publish();
+        visionYawPub = table.getDoubleTopic("vision/yaw_deg").publish();
+        visionPitchPub = table.getDoubleTopic("vision/pitch_deg").publish();
         visionDistancePub = table.getDoubleTopic("vision/distance_m").publish();
+        visionTagPixelHeightPub = table.getDoubleTopic("vision/tag_pixel_height_px").publish();
+        visionTargetTimestampPub = table.getDoubleTopic("vision/target_timestamp_sec").publish();
 
         // CAN bus health
         canBusUtilizationPub = table.getDoubleTopic("health/can_bus_utilization").publish();
@@ -453,7 +463,12 @@ public class RobotDashboardService {
         cameraFrameCountPub.set(snapshot.cameraFrameCount());
         cameraLastFrameTimestampPub.set(snapshot.cameraLastFrameTimestampSec());
         visionTagIdPub.set(snapshot.visionTagId());
+        visionHasTargetPub.set(snapshot.visionHasTarget());
+        visionYawPub.set(snapshot.visionYawDeg());
+        visionPitchPub.set(snapshot.visionPitchDeg());
         visionDistancePub.set(snapshot.visionDistanceM());
+        visionTagPixelHeightPub.set(snapshot.visionTagPixelHeightPx());
+        visionTargetTimestampPub.set(snapshot.visionTargetTimestampSec());
 
         // CAN bus health
         canBusUtilizationPub.set(snapshot.canBusUtilization());

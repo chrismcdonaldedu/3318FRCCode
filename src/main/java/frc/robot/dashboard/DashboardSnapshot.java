@@ -66,7 +66,12 @@ public record DashboardSnapshot(
         double cameraLastFrameTimestampSec,
         // Vision tag detection (from background vision thread)
         int visionTagId,
+        boolean visionHasTarget,
+        double visionYawDeg,
+        double visionPitchDeg,
         double visionDistanceM,
+        double visionTagPixelHeightPx,
+        double visionTargetTimestampSec,
         // CAN bus health
         double canBusUtilization,
         long canReceiveErrorCount,

@@ -730,11 +730,16 @@ public class RobotContainer {
         VisionResult latestVision = visionResult.get();
         CameraDebugInfo latestCameraDebug = cameraDebugInfo.get();
         int visionTagId = latestVision != null ? latestVision.tagId() : -1;
+        boolean visionHasTarget = latestVision != null;
+        double visionYawDeg = latestVision != null ? latestVision.yawDeg() : Double.NaN;
+        double visionPitchDeg = latestVision != null ? latestVision.pitchDeg() : Double.NaN;
         double visionDistanceM = latestVision != null
                 ? latestVision.estimateDistanceM(
                         Constants.Vision.TAG_HEIGHT_M,
                         Constants.Vision.FOCAL_LENGTH_PIXELS)
                 : Double.NaN;
+        double visionTagPixelHeightPx = latestVision != null ? latestVision.tagPixelHeight() : Double.NaN;
+        double visionTargetTimestampSec = latestVision != null ? latestVision.timestampSec() : Double.NaN;
 
         double batteryVoltage = RobotController.getBatteryVoltage();
         var canStatus = RobotController.getCANStatus();
@@ -811,7 +816,12 @@ public class RobotContainer {
                 latestCameraDebug.frameCount(),
                 latestCameraDebug.lastFrameTimestampSec(),
                 visionTagId,
+                visionHasTarget,
+                visionYawDeg,
+                visionPitchDeg,
                 visionDistanceM,
+                visionTagPixelHeightPx,
+                visionTargetTimestampSec,
                 // CAN health
                 canStatus.percentBusUtilization,
                 canStatus.receiveErrorCount,

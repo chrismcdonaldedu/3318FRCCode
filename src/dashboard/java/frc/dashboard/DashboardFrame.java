@@ -167,6 +167,11 @@ public class DashboardFrame extends JFrame {
     private final JLabel visionStreamSourceLabel = new JLabel("Source: --");
     private final JLabel visionStreamCameraLabel = new JLabel("Camera: --");
     private final JLabel visionStreamErrorLabel = new JLabel("Error: --");
+    private final JLabel visionTargetStatusLabel = new JLabel("Target: --");
+    private final JLabel visionTargetAnglesLabel = new JLabel("Yaw: --  Pitch: --");
+    private final JLabel visionTargetDistanceLabel = new JLabel("Distance: --  Height: --");
+    private final JLabel visionTargetAgeLabel = new JLabel("Target age: --  Frame age: --");
+    private final JLabel visionPoseSourceLabel = new JLabel("Pose source: Odometry only");
     private JComboBox<String> visionStreamModeCombo;
     private JToggleButton visionStreamEnabledToggle;
     // Controls tab
@@ -442,6 +447,11 @@ public class DashboardFrame extends JFrame {
         styleMetricLabel(visionStreamSourceLabel);
         styleMetricLabel(visionStreamCameraLabel);
         styleMetricLabel(visionStreamErrorLabel);
+        styleMetricLabel(visionTargetStatusLabel);
+        styleMetricLabel(visionTargetAnglesLabel);
+        styleMetricLabel(visionTargetDistanceLabel);
+        styleMetricLabel(visionTargetAgeLabel);
+        styleMetricLabel(visionPoseSourceLabel);
 
         JPanel controls = new JPanel();
         controls.setLayout(new BoxLayout(controls, BoxLayout.X_AXIS));
@@ -478,12 +488,22 @@ public class DashboardFrame extends JFrame {
 
         root.add(wrapCard("Vision Stream Controls", controls), BorderLayout.NORTH);
         root.add(wrapCard("Live Camera", visionStreamPanel), BorderLayout.CENTER);
-        root.add(wrapLabelCard(
+        JPanel bottom = new JPanel(new GridLayout(1, 2, 10, 10));
+        bottom.setBackground(BG);
+        bottom.add(wrapLabelCard(
                 "Vision Stream Status",
                 visionStreamStatusLabel,
                 visionStreamSourceLabel,
                 visionStreamCameraLabel,
-                visionStreamErrorLabel), BorderLayout.SOUTH);
+                visionStreamErrorLabel));
+        bottom.add(wrapLabelCard(
+                "Vision Target Metrics",
+                visionTargetStatusLabel,
+                visionTargetAnglesLabel,
+                visionTargetDistanceLabel,
+                visionTargetAgeLabel,
+                visionPoseSourceLabel));
+        root.add(bottom, BorderLayout.SOUTH);
 
         updateVisionStreamSelection();
         return root;
@@ -1162,6 +1182,7 @@ public class DashboardFrame extends JFrame {
         visionStreamCameraLabel.setText("Camera: " + buildCameraDebugSummary(data));
         visionStreamErrorLabel.setText("Error: " + sanitize(nonBlankOr(data.cameraLastError(), "none")));
         visionStreamErrorLabel.setForeground(isBlank(data.cameraLastError()) ? MUTED : WARN);
+        updateVisionTargetMetrics(data);
     }
 
     private void updateVisionStreamSelection() {
@@ -1179,7 +1200,8 @@ public class DashboardFrame extends JFrame {
         String mode = visionStreamModeCombo == null ? "Overlay" : String.valueOf(visionStreamModeCombo.getSelectedItem());
         return mode + " host=" + client.getRobotHost()
                 + " status=" + sanitize(data.cameraStatus())
-                + " tag=" + data.visionTagId();
+                + " target=" + yesNo(data.visionHasTarget())
+                + (data.visionHasTarget() ? " tag=" + data.visionTagId() : "");
     }
 
     private String buildCameraDebugSummary(DashboardData data) {
@@ -1194,6 +1216,29 @@ public class DashboardFrame extends JFrame {
             return Double.NaN;
         }
         return Math.max(0.0, data.robotTimestampSec() - data.cameraLastFrameTimestampSec());
+    }
+
+    private void updateVisionTargetMetrics(DashboardData data) {
+        boolean hasTarget = data.visionHasTarget() && data.visionTagId() >= 0;
+        visionTargetStatusLabel.setText("Target: " + yesNo(hasTarget)
+                + (hasTarget ? "  Tag: " + data.visionTagId() : ""));
+        visionTargetStatusLabel.setForeground(hasTarget ? OK : WARN);
+        visionTargetAnglesLabel.setText("Yaw: " + formatMaybe(data.visionYawDeg())
+                + " deg  Pitch: " + formatMaybe(data.visionPitchDeg()) + " deg");
+        visionTargetDistanceLabel.setText("Distance: " + formatMaybe(data.visionDistanceM())
+                + " m  Height: " + formatMaybe(data.visionTagPixelHeightPx()) + " px");
+        visionTargetAgeLabel.setText("Target age: " + formatMaybe(visionTargetAgeSec(data))
+                + " s  Frame age: " + formatMaybe(cameraFrameAgeSec(data)) + " s");
+        visionTargetAgeLabel.setForeground(hasTarget ? OK : MUTED);
+        visionPoseSourceLabel.setText("Pose source: Odometry only");
+        visionPoseSourceLabel.setForeground(MUTED);
+    }
+
+    private double visionTargetAgeSec(DashboardData data) {
+        if (!Double.isFinite(data.robotTimestampSec()) || !Double.isFinite(data.visionTargetTimestampSec())) {
+            return Double.NaN;
+        }
+        return Math.max(0.0, data.robotTimestampSec() - data.visionTargetTimestampSec());
     }
 
     private static boolean isBlank(String value) {
@@ -2308,10 +2353,10 @@ public class DashboardFrame extends JFrame {
             this.mode = data.mode();
             this.alliance = data.alliance();
             this.cameraConnected = data.cameraConnected();
-            this.hasTarget = data.alignHasTarget();
+            this.hasTarget = data.visionHasTarget();
             this.visionTagId = data.visionTagId();
             this.visionDistanceM = data.visionDistanceM();
-            this.alignYawDeg = data.alignYawDeg();
+            this.alignYawDeg = data.visionYawDeg();
 
             // Expected auto starting pose (flip for red alliance)
             double startX = data.autoStartX_m();

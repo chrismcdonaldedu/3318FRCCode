@@ -128,8 +128,18 @@ public class DashboardNtClient implements AutoCloseable {
             table.getDoubleTopic("vision/camera_last_frame_ts_sec").subscribe(Double.NaN);
     private final IntegerSubscriber visionTagIdSub =
             table.getIntegerTopic("vision/tag_id").subscribe(-1);
+    private final BooleanSubscriber visionHasTargetSub =
+            table.getBooleanTopic("vision/has_target").subscribe(false);
+    private final DoubleSubscriber visionYawSub =
+            table.getDoubleTopic("vision/yaw_deg").subscribe(Double.NaN);
+    private final DoubleSubscriber visionPitchSub =
+            table.getDoubleTopic("vision/pitch_deg").subscribe(Double.NaN);
     private final DoubleSubscriber visionDistanceSub =
             table.getDoubleTopic("vision/distance_m").subscribe(Double.NaN);
+    private final DoubleSubscriber visionTagPixelHeightSub =
+            table.getDoubleTopic("vision/tag_pixel_height_px").subscribe(Double.NaN);
+    private final DoubleSubscriber visionTargetTimestampSub =
+            table.getDoubleTopic("vision/target_timestamp_sec").subscribe(Double.NaN);
 
     // CAN bus health
     private final DoubleSubscriber canBusUtilizationSub =
@@ -333,7 +343,12 @@ public class DashboardNtClient implements AutoCloseable {
                 cameraFrameCountSub.get(),
                 cameraLastFrameTimestampSub.get(),
                 (int) visionTagIdSub.get(),
+                visionHasTargetSub.get(),
+                visionYawSub.get(),
+                visionPitchSub.get(),
                 visionDistanceSub.get(),
+                visionTagPixelHeightSub.get(),
+                visionTargetTimestampSub.get(),
                 // CAN health
                 canBusUtilizationSub.get(),
                 canReceiveErrorCountSub.get(),
