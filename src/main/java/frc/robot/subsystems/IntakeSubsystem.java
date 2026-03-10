@@ -36,6 +36,7 @@ import com.revrobotics.spark.config.SparkMaxConfig;
 
 import edu.wpi.first.wpilibj.DigitalInput;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
+import edu.wpi.first.math.filter.Debouncer;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 
 import frc.robot.Constants;
@@ -52,6 +53,8 @@ public class IntakeSubsystem extends SubsystemBase {
     //                             false when switch is CLOSED (pressed)
     // We negate it in getLimitSwitchPressed() so "true" = pressed.
     private final DigitalInput homeLimitSwitch = new DigitalInput(Constants.DIO.INTAKE_HOME_SWITCH);
+    private final Debouncer homeLimitSwitchDebouncer =
+            new Debouncer(Constants.Intake.HOME_SWITCH_DEBOUNCE_SEC, Debouncer.DebounceType.kBoth);
 
     // ---- Roller motor (TalonFX / Kraken X60) ----
     private final TalonFX rollerMotor =
@@ -61,6 +64,10 @@ public class IntakeSubsystem extends SubsystemBase {
     // isHomed is false at startup until IntakeHomeCommand confirms the arm
     // has touched the limit switch. We refuse position commands until homed.
     private boolean isHomed = false;
+    private boolean homeLimitSwitchRawPressed = false;
+    private boolean homeLimitSwitchPressed = false;
+    private boolean minSoftLimitLatched = false;
+    private boolean maxSoftLimitLatched = false;
 
     // --------------------------------------------------------------------------
     // Constructor
@@ -113,6 +120,8 @@ public class IntakeSubsystem extends SubsystemBase {
         rollerMotor.getVelocity().setUpdateFrequency(4);
         rollerMotor.getPosition().setUpdateFrequency(4);
         rollerMotor.getDeviceTemp().setUpdateFrequency(1);
+
+        updateHomeLimitSwitchState();
     }
 
     // --------------------------------------------------------------------------
@@ -120,6 +129,8 @@ public class IntakeSubsystem extends SubsystemBase {
     // --------------------------------------------------------------------------
     @Override
     public void periodic() {
+        updateHomeLimitSwitchState();
+
         // If we boot while already at the home switch, trust that as a valid zero.
         if (!isHomed && getLimitSwitchPressed()) {
             resetEncoderToHome();
@@ -128,6 +139,7 @@ public class IntakeSubsystem extends SubsystemBase {
         SmartDashboard.putNumber("Intake/TiltPositionDeg",  tiltEncoder.getPosition());
         SmartDashboard.putBoolean("Intake/IsHomed",         isHomed);
         SmartDashboard.putBoolean("Intake/LimitSwitch",     getLimitSwitchPressed());
+        SmartDashboard.putBoolean("Intake/LimitSwitchRaw",  homeLimitSwitchRawPressed);
     }
 
     // --------------------------------------------------------------------------
@@ -138,7 +150,7 @@ public class IntakeSubsystem extends SubsystemBase {
     // the switch is NOT pressed. We invert this for readability.
     // --------------------------------------------------------------------------
     public boolean getLimitSwitchPressed() {
-        return !homeLimitSwitch.get();  // true = switch pressed = arm is home
+        return homeLimitSwitchPressed;  // true = switch pressed = arm is home
     }
 
     // --------------------------------------------------------------------------
@@ -175,12 +187,31 @@ public class IntakeSubsystem extends SubsystemBase {
         }
         if (isHomed) {
             double positionDeg = getTiltPositionDeg();
-            if (commandingAwayFromHome && positionDeg <= Constants.Intake.TILT_MIN_DEG) {
+            double hysteresisDeg = Constants.Intake.TILT_SOFT_LIMIT_HYSTERESIS_DEG;
+
+            if (positionDeg <= Constants.Intake.TILT_MIN_DEG) {
+                minSoftLimitLatched = true;
+            } else if (minSoftLimitLatched
+                    && positionDeg >= Constants.Intake.TILT_MIN_DEG + hysteresisDeg) {
+                minSoftLimitLatched = false;
+            }
+
+            if (positionDeg >= Constants.Intake.TILT_MAX_DEG) {
+                maxSoftLimitLatched = true;
+            } else if (maxSoftLimitLatched
+                    && positionDeg <= Constants.Intake.TILT_MAX_DEG - hysteresisDeg) {
+                maxSoftLimitLatched = false;
+            }
+
+            if (commandingAwayFromHome && minSoftLimitLatched) {
                 clampedPower = 0.0;
             }
-            if (commandingTowardHome && positionDeg >= Constants.Intake.TILT_MAX_DEG) {
+            if (commandingTowardHome && maxSoftLimitLatched) {
                 clampedPower = 0.0;
             }
+        } else {
+            minSoftLimitLatched = false;
+            maxSoftLimitLatched = false;
         }
 
         tiltMotor.set(clampedPower);
@@ -239,5 +270,10 @@ public class IntakeSubsystem extends SubsystemBase {
     public void stop() {
         tiltMotor.stopMotor();
         rollerMotor.stopMotor();
+    }
+
+    private void updateHomeLimitSwitchState() {
+        homeLimitSwitchRawPressed = !homeLimitSwitch.get();
+        homeLimitSwitchPressed = homeLimitSwitchDebouncer.calculate(homeLimitSwitchRawPressed);
     }
 }

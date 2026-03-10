@@ -365,6 +365,7 @@ public final class Constants {
         // Therefore positive power moves toward home (limit switch).
         public static final double HOME_POWER       = 0.15;
         public static final double HOME_TIMEOUT_SEC =  2.0;
+        public static final double HOME_SWITCH_DEBOUNCE_SEC = 0.04;
 
         // Target angle for the intake to be "down" and collecting game pieces
         public static final double INTAKE_DOWN_DEG = -45.0;  // TUNE ME
@@ -377,6 +378,12 @@ public final class Constants {
         // TUNE ME: Set these to the actual min/max safe travel of YOUR intake arm.
         public static final double TILT_MIN_DEG = -90.0;  // fully deployed
         public static final double TILT_MAX_DEG = 5.0;    // small margin past home
+        public static final double TILT_SOFT_LIMIT_HYSTERESIS_DEG = 1.0;
+
+        // Manual right-stick deadband hysteresis for intake tilt.
+        // Enter movement above ENGAGE; return to idle below RELEASE.
+        public static final double MANUAL_TILT_ENGAGE_DEADBAND = 0.12;
+        public static final double MANUAL_TILT_RELEASE_DEADBAND = 0.08;
 
         // Current limit to protect the NEO and gearbox during homing stalls
         public static final int TILT_CURRENT_LIMIT_A = 40;

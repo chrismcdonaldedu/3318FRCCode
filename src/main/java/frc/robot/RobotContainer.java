@@ -121,6 +121,7 @@ public class RobotContainer implements RobotRuntimeContainer {
     // private double lastClimberPower = 0.0;
     private double lastHopperPower = 0.0;
     private double lastIntakeTiltPower = 0.0;
+    private boolean intakeTiltManualAxisActive = false;
     // private boolean lastClimbArmed = false;
     private Command currentSwerveValidationCommand;
 
@@ -563,8 +564,7 @@ public class RobotContainer implements RobotRuntimeContainer {
         // Right stick Y: Manual intake tilt control with deadband to prevent jitter.
         intake.setDefaultCommand(
                 Commands.run(() -> {
-                    double tiltPower = MathUtil.applyDeadband(
-                            -operatorController.getRightY(), Constants.Swerve.JOYSTICK_DEADBAND);
+                    double tiltPower = getOperatorIntakeTiltManualPower();
                     intake.setTiltPower(tiltPower);
 
                     lastIntakeTiltPower = tiltPower;
@@ -900,6 +900,25 @@ public class RobotContainer implements RobotRuntimeContainer {
         return !driverController.leftBumper().getAsBoolean();
     }
 
+    private double getOperatorIntakeTiltManualPower() {
+        double rawTiltInput = -operatorController.getRightY();
+        double absTiltInput = Math.abs(rawTiltInput);
+
+        // Hysteresis avoids run/stop chatter when the stick hovers near deadband.
+        if (intakeTiltManualAxisActive) {
+            if (absTiltInput < Constants.Intake.MANUAL_TILT_RELEASE_DEADBAND) {
+                intakeTiltManualAxisActive = false;
+            }
+        } else if (absTiltInput > Constants.Intake.MANUAL_TILT_ENGAGE_DEADBAND) {
+            intakeTiltManualAxisActive = true;
+        }
+
+        if (!intakeTiltManualAxisActive) {
+            return 0.0;
+        }
+        return MathUtil.applyDeadband(rawTiltInput, Constants.Intake.MANUAL_TILT_RELEASE_DEADBAND);
+    }
+
     private Command buildIntakeTiltToggleCommand() {
         // If not homed, finish immediately so the intake subsystem isn't held.
         if (!intake.isHomed()) {
@@ -926,7 +945,7 @@ public class RobotContainer implements RobotRuntimeContainer {
         ).until(() -> {
             // End when the operator moves the right stick (manual override)
             double tiltInput = Math.abs(operatorController.getRightY());
-            return tiltInput > Constants.Swerve.JOYSTICK_DEADBAND;
+            return tiltInput > Constants.Intake.MANUAL_TILT_ENGAGE_DEADBAND;
         }).withTimeout(3.0).withName("IntakeTiltToggle");
     }
 
