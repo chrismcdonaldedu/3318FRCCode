@@ -413,4 +413,43 @@ public class ShooterSubsystem extends SubsystemBase {
             intake.setRollerPower(0);
         });
     }
+
+    public Command buildContinuousShootRoutine(FeederSubsystem feeder,
+                                               HopperSubsystem hopper,
+                                               IntakeSubsystem intake,
+                                               double targetRPS) {
+        return Commands.sequence(
+                Commands.runOnce(() -> setShooterVelocity(targetRPS), this),
+
+                Commands.run(() -> feeder.setPower(Constants.Shooter.CLEAR_POWER), feeder)
+                        .withTimeout(Constants.Shooter.CLEAR_TIME_SEC),
+                Commands.runOnce(feeder::stop, feeder),
+
+                Commands.waitUntil(() -> isAtSpeed(targetRPS))
+                        .withTimeout(Constants.Shooter.AT_SPEED_TIMEOUT_SEC),
+
+                Commands.runOnce(() -> {
+                    if (!isAtSpeed(targetRPS)) {
+                        System.out.println("[ShootRoutine] WARNING: Feeding at "
+                                + String.format("%.1f", Math.abs(getLeftRPS()))
+                                + "/" + String.format("%.1f", Math.abs(getRightRPS()))
+                                + " RPS, target was " + String.format("%.1f", targetRPS));
+                        SmartDashboard.putBoolean("Shooter/FedBelowSpeed", true);
+                    } else {
+                        SmartDashboard.putBoolean("Shooter/FedBelowSpeed", false);
+                    }
+                }),
+
+                Commands.parallel(
+                        Commands.run(() -> feeder.setPower(Constants.Shooter.FEED_POWER), feeder),
+                        Commands.run(() -> hopper.setPower(Constants.Shooter.FEED_POWER), hopper),
+                        Commands.run(() -> intake.setRollerPower(Constants.Shooter.FEED_POWER), intake)
+                )
+        ).finallyDo(() -> {
+            stop();
+            feeder.stop();
+            hopper.stop();
+            intake.setRollerPower(0);
+        });
+    }
 }

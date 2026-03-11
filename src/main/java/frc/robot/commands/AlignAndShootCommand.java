@@ -94,6 +94,7 @@ public class AlignAndShootCommand extends Command {
     private final Timer stateTimer = new Timer();
     private final Timer alignOverallTimer = new Timer();
     private final Timer feedGateTimer = new Timer();
+    private final Timer continuousLossTimer = new Timer();
     private double searchRotationSign = 1.0;
     private boolean seenTargetThisRun = false;
 
@@ -143,6 +144,7 @@ public class AlignAndShootCommand extends Command {
         alignOverallTimer.restart();
         turnPID.reset();
         resetFeedGateTimer();
+        resetContinuousLossTimer();
         searchRotationSign = 1.0;
         seenTargetThisRun = false;
 
@@ -324,6 +326,10 @@ public class AlignAndShootCommand extends Command {
         VisionResult result = visionRef.get();
         if (!hasShootableTarget(result)) {
             if (continuousFeedUntilInterrupted) {
+                if (shouldHoldContinuousFeed()) {
+                    holdStationaryWhileReacquiring();
+                    return;
+                }
                 stopFeedPath();
                 shooter.stop();
                 transitionTo(State.ALIGN);
@@ -336,6 +342,10 @@ public class AlignAndShootCommand extends Command {
         ShotTracking tracking = buildStationaryTracking(result);
         if (!tracking.solution().feasible() || !tracking.feedGateReady()) {
             if (continuousFeedUntilInterrupted) {
+                if (shouldHoldContinuousFeed()) {
+                    holdStationaryWhileReacquiring();
+                    return;
+                }
                 stopFeedPath();
                 shooter.stop();
                 transitionTo(State.ALIGN);
@@ -345,6 +355,7 @@ public class AlignAndShootCommand extends Command {
             return;
         }
 
+        resetContinuousLossTimer();
         applyTracking(tracking);
         driveTracking(tracking);
         feeder.setPower(Constants.Shooter.CLEAR_POWER);
@@ -359,6 +370,10 @@ public class AlignAndShootCommand extends Command {
         VisionResult result = visionRef.get();
         if (!hasShootableTarget(result)) {
             if (continuousFeedUntilInterrupted) {
+                if (shouldHoldContinuousFeed()) {
+                    holdStationaryWhileReacquiring();
+                    return;
+                }
                 stopFeedPath();
                 shooter.stop();
                 transitionTo(State.ALIGN);
@@ -372,6 +387,10 @@ public class AlignAndShootCommand extends Command {
         boolean yawAligned = Math.abs(tracking.aimErrorDeg()) <= Constants.AlignShoot.YAW_TOLERANCE_DEG;
         if (!tracking.solution().feasible() || !yawAligned) {
             if (continuousFeedUntilInterrupted) {
+                if (shouldHoldContinuousFeed()) {
+                    holdStationaryWhileReacquiring();
+                    return;
+                }
                 stopFeedPath();
                 shooter.stop();
                 transitionTo(State.ALIGN);
@@ -381,6 +400,7 @@ public class AlignAndShootCommand extends Command {
             return;
         }
 
+        resetContinuousLossTimer();
         applyTracking(tracking);
         driveTracking(tracking);
         feeder.setPower(Constants.Shooter.FEED_POWER);
@@ -396,6 +416,7 @@ public class AlignAndShootCommand extends Command {
     private void transitionTo(State newState) {
         state = newState;
         stateTimer.restart();
+        resetContinuousLossTimer();
         if (newState != State.ALIGN) {
             resetFeedGateTimer();
         }
@@ -599,10 +620,34 @@ public class AlignAndShootCommand extends Command {
         feedGateTimer.reset();
     }
 
+    private void resetContinuousLossTimer() {
+        continuousLossTimer.stop();
+        continuousLossTimer.reset();
+    }
+
     private void stopFeedPath() {
         feeder.stop();
         hopper.stop();
         intake.setRollerPower(0);
+    }
+
+    private boolean shouldHoldContinuousFeed() {
+        if (!continuousLossTimer.isRunning()) {
+            continuousLossTimer.restart();
+        }
+        return !continuousLossTimer.hasElapsed(Constants.AlignShoot.CONTINUOUS_FEED_REACQUIRE_SEC);
+    }
+
+    private void holdStationaryWhileReacquiring() {
+        workFeedGateReady = false;
+        if (state == State.CLEAR) {
+            feeder.setPower(Constants.Shooter.CLEAR_POWER);
+        } else if (state == State.FEED) {
+            feeder.setPower(Constants.Shooter.FEED_POWER);
+            hopper.setPower(Constants.Shooter.FEED_POWER);
+            intake.setRollerPower(Constants.Shooter.FEED_POWER);
+        }
+        swerve.driveRobotRelative(new ChassisSpeeds(0.0, 0.0, 0.0));
     }
 
     private void updateSearchDirectionFromYaw(double yawDeg) {

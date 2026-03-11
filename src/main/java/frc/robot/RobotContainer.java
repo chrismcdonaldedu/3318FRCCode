@@ -601,11 +601,10 @@ public class RobotContainer implements RobotRuntimeContainer {
                         .beforeStarting(() -> logControlEvent("Operator:RT", "AlignAndShoot requested")));
 
         // Right Bumper: OVERRIDE shot at fallback speed (no alignment/vision required).
-        // whileTrue + repeatedly keeps running full shoot cycles for the entire hold.
+        // Spins up once, clears once, then keeps feeding continuously until release.
         operatorController.rightBumper().whileTrue(
-                Commands.sequence(
-                        Commands.runOnce(() -> logControlEvent("Operator:RB", "Fallback shot requested")),
-                        buildFallbackShootCommand().repeatedly()));
+                buildContinuousFallbackShootCommand()
+                        .beforeStarting(() -> logControlEvent("Operator:RB", "Fallback shot requested")));
 
         // Left Trigger: Manual intake roller — spin forward with stall detection.
         // If the roller jams, it automatically reverses and retries (up to 3 times).
@@ -875,6 +874,11 @@ public class RobotContainer implements RobotRuntimeContainer {
     private Command buildFallbackShootCommand() {
         return shooter.buildShootRoutine(feeder, hopper, intake, Constants.Shooter.FALLBACK_RPS)
                 .withName("FallbackShootRoutine");
+    }
+
+    private Command buildContinuousFallbackShootCommand() {
+        return shooter.buildContinuousShootRoutine(feeder, hopper, intake, Constants.Shooter.FALLBACK_RPS)
+                .withName("FallbackShootContinuous");
     }
 
     private DriverDriveUtil.DriveRequest getDriverDriveRequest() {

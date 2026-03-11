@@ -532,6 +532,9 @@ public final class Constants {
         public static final double YAW_TOLERANCE_DEG = Vision.YAW_TOLERANCE_DEG;
         public static final double RPS_TOLERANCE_RPS = 1.5; // TUNE ME
         public static final double SETTLE_TIME_SEC = 0.20; // TUNE ME
+        // During continuous hold-to-shoot, tolerate brief target/yaw dropouts
+        // before stopping feed and forcing a full re-align.
+        public static final double CONTINUOUS_FEED_REACQUIRE_SEC = 0.25; // TUNE ME
     }
 
     // =========================================================================
