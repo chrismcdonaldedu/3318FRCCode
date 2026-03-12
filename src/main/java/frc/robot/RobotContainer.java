@@ -926,21 +926,18 @@ public class RobotContainer implements RobotRuntimeContainer {
         if (!intakeTiltManualAxisActive) {
             return 0.0;
         }
-        return MathUtil.applyDeadband(rawTiltInput, Constants.Intake.MANUAL_TILT_RELEASE_DEADBAND);
+        double manualPower = MathUtil.applyDeadband(rawTiltInput, Constants.Intake.MANUAL_TILT_RELEASE_DEADBAND);
+        if (manualPower > 0.0) {
+            return Math.min(manualPower, Constants.Intake.MANUAL_TILT_MAX_POWER_UP);
+        }
+        if (manualPower < 0.0) {
+            return Math.max(manualPower, -Constants.Intake.MANUAL_TILT_MAX_POWER_DOWN);
+        }
+        return 0.0;
     }
 
     private Command buildIntakeTiltToggleCommand() {
-        // If not homed, finish immediately so the intake subsystem isn't held.
-        if (!intake.isHomed()) {
-            return Commands.runOnce(() ->
-                    System.out.println("[RobotContainer] Intake tilt toggle ignored: intake is not homed."),
-                    intake).withName("IntakeTiltToggle");
-        }
-        // Sustained command that holds the PID setpoint until interrupted by the
-        // operator moving the right stick (which activates the default tilt command).
-        // This prevents the default command from immediately overriding the PID.
-        // Manual stick override is intentionally allowed as a safety valve.
-        return Commands.startEnd(
+        Command toggleWhenHomed = Commands.startEnd(
                 () -> {
                     double positionDeg = intake.getTiltPositionDeg();
                     boolean shouldDeploy =
@@ -956,7 +953,15 @@ public class RobotContainer implements RobotRuntimeContainer {
             // End when the operator moves the right stick (manual override)
             double tiltInput = Math.abs(operatorController.getRightY());
             return tiltInput > Constants.Intake.MANUAL_TILT_ENGAGE_DEADBAND;
-        }).withTimeout(3.0).withName("IntakeTiltToggle");
+        }).withTimeout(3.0).withName("IntakeTiltToggleActive");
+
+        Command notHomed = Commands.runOnce(() ->
+                System.out.println("[RobotContainer] Intake tilt toggle ignored: intake is not homed."),
+                intake).withName("IntakeTiltToggleNotHomed");
+
+        // IMPORTANT: Evaluate homed state at button press time, not startup.
+        return Commands.either(toggleWhenHomed, notHomed, intake::isHomed)
+                .withName("IntakeTiltToggle");
     }
 
     private Command buildIntakeHomeCommand() {

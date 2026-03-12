@@ -383,6 +383,10 @@ public final class Constants {
         // Enter movement above ENGAGE; return to idle below RELEASE.
         public static final double MANUAL_TILT_ENGAGE_DEADBAND = 0.12;
         public static final double MANUAL_TILT_RELEASE_DEADBAND = 0.08;
+        // Manual tilt output caps (as motor percent output).
+        // Positive = tilt up/toward home, negative = tilt down/away from home.
+        public static final double MANUAL_TILT_MAX_POWER_UP = 1.00;
+        public static final double MANUAL_TILT_MAX_POWER_DOWN = 0.25;
 
         // Current limit to protect the NEO and gearbox during homing stalls
         public static final int TILT_CURRENT_LIMIT_A = 40;
