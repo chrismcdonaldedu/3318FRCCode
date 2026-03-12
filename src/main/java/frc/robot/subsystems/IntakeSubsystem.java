@@ -23,6 +23,7 @@ package frc.robot.subsystems;
 import com.ctre.phoenix6.CANBus;
 import com.ctre.phoenix6.configs.TalonFXConfiguration;
 import com.ctre.phoenix6.hardware.TalonFX;
+import com.ctre.phoenix6.signals.InvertedValue;
 import com.ctre.phoenix6.signals.NeutralModeValue;
 import com.revrobotics.PersistMode;
 import com.revrobotics.RelativeEncoder;
@@ -104,6 +105,9 @@ public class IntakeSubsystem extends SubsystemBase {
 
         // Coast mode: roller can spin freely after power removed (doesn't jam)
         rollerCfg.MotorOutput.NeutralMode = NeutralModeValue.Coast;
+        rollerCfg.MotorOutput.Inverted = Constants.Intake.ROLLER_MOTOR_INVERTED
+                ? InvertedValue.Clockwise_Positive
+                : InvertedValue.CounterClockwise_Positive;
 
         // === CRITICAL: Current limiting prevents motor damage during game piece jams ===
         // Without this, the Kraken can burn out or trip a breaker if the intake stalls.
