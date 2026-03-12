@@ -389,6 +389,8 @@ public final class Constants {
 
         // Roller current limit (TalonFX / Kraken)
         public static final int ROLLER_STATOR_LIMIT_A = 60;  // prevents jam burnout
+        // Positive roller power should pull FUEL inward toward the hopper.
+        public static final boolean ROLLER_MOTOR_INVERTED = true;
 
         // ---- Stall detection (roller motor) ----
         // If roller current stays above STALL_CURRENT_THRESHOLD_A for STALL_TIME_SEC,
