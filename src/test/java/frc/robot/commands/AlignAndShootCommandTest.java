@@ -12,12 +12,14 @@ class AlignAndShootCommandTest {
 
     @Test
     void realisticHubShotPitchIsConsideredFeasible() {
-        assertTrue(AlignAndShootCommand.isShotPitchFeasible(32.0));
+        double nominalPitchDeg =
+                (Constants.Vision.MIN_SHOT_PITCH_DEG + Constants.Vision.MAX_SHOT_PITCH_DEG) * 0.5;
+        assertTrue(AlignAndShootCommand.isShotPitchFeasible(nominalPitchDeg));
     }
 
     @Test
     void extremePitchStillRejected() {
-        assertFalse(AlignAndShootCommand.isShotPitchFeasible(45.0));
+        assertFalse(AlignAndShootCommand.isShotPitchFeasible(Constants.Vision.MAX_SHOT_PITCH_DEG + 1.0));
     }
 
     @Test

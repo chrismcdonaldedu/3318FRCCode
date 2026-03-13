@@ -299,7 +299,7 @@ public final class Constants {
         //   where Δh = target_height - shooter_exit_height
         //
         // TUNE ME: Measure the actual launch angle with a protractor or slow-mo video.
-        public static final double SHOT_ANGLE_DEG        = 55.0;  // TUNE ME
+        public static final double SHOT_ANGLE_DEG        = 60.0;  // TUNE ME
         // Height of the shooter exit above the floor (20 inches).
         public static final double SHOOTER_EXIT_HEIGHT_M = Units.inchesToMeters(16.5);
         // Height of the HUB scoring opening (may differ from tag height of 1.124m).
@@ -522,9 +522,9 @@ public final class Constants {
         // Camera health should track frame heartbeat, not whether a tag is visible.
         public static final double CAMERA_HEARTBEAT_TIMEOUT_SEC = 2.0;
         // Feasible vertical angle band for a valid shot solution from the camera.
-        public static final double MIN_SHOT_PITCH_DEG = -12.0; // TUNE ME
+        public static final double MIN_SHOT_PITCH_DEG = -20.0; // TUNE ME
         // Verify this band on-robot after camera pitch is finalized.
-        public static final double MAX_SHOT_PITCH_DEG =  40.0; // TUNE ME
+        public static final double MAX_SHOT_PITCH_DEG =  22.0; // TUNE ME
 
         // Filter raw camera yaw before feeding it into the turn controller.
         // 0 = no filtering, closer to 1 = heavier smoothing.
