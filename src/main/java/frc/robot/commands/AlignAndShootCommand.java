@@ -82,9 +82,9 @@ public class AlignAndShootCommand extends Command {
     private final AtomicReference<VisionResult> visionRef;
     private final boolean continuousFeedUntilInterrupted;
     private final PIDController turnPID = new PIDController(
-            Constants.Vision.TURN_kP,
+            Constants.AlignShoot.TURN_kP,
             0.0,
-            Constants.Vision.TURN_kD);
+            Constants.AlignShoot.TURN_kD);
 
     private enum State { ALIGN, CLEAR, FEED, DONE }
 
@@ -138,7 +138,7 @@ public class AlignAndShootCommand extends Command {
         this.continuousFeedUntilInterrupted = continuousFeedUntilInterrupted;
 
         addRequirements(swerve, shooter, feeder, hopper, intake);
-        turnPID.setTolerance(Constants.Vision.YAW_TOLERANCE_DEG);
+        turnPID.setTolerance(Constants.AlignShoot.YAW_TOLERANCE_DEG);
     }
 
     @Override
@@ -704,7 +704,7 @@ public class AlignAndShootCommand extends Command {
             return;
         }
         if (alignmentLocked) {
-            if (Math.abs(filteredYawDeg) > Constants.Vision.YAW_BREAK_TOLERANCE_DEG) {
+            if (Math.abs(filteredYawDeg) > Constants.AlignShoot.YAW_BREAK_TOLERANCE_DEG) {
                 alignmentLocked = false;
                 resetAlignmentLockTimer();
             }
@@ -727,7 +727,7 @@ public class AlignAndShootCommand extends Command {
             return false;
         }
         if (Double.isFinite(filteredYawDeg)
-                && Math.abs(filteredYawDeg) <= Constants.Vision.YAW_BREAK_TOLERANCE_DEG) {
+                && Math.abs(filteredYawDeg) <= Constants.AlignShoot.YAW_BREAK_TOLERANCE_DEG) {
             return true;
         }
         alignmentLocked = false;
@@ -742,7 +742,7 @@ public class AlignAndShootCommand extends Command {
         double absYawDeg = Math.abs(filteredYawDeg);
         return absYawDeg <= Constants.AlignShoot.YAW_TOLERANCE_DEG
                 || (alignmentLockTimer.isRunning()
-                        && absYawDeg <= Constants.Vision.YAW_BREAK_TOLERANCE_DEG)
+                        && absYawDeg <= Constants.AlignShoot.YAW_BREAK_TOLERANCE_DEG)
                 || alignmentLocked;
     }
 
@@ -773,8 +773,8 @@ public class AlignAndShootCommand extends Command {
         if (!Double.isFinite(filteredYawDeg)) {
             filteredYawDeg = rawYawDeg;
         } else {
-            filteredYawDeg = Constants.Vision.YAW_FILTER_ALPHA * filteredYawDeg
-                    + (1.0 - Constants.Vision.YAW_FILTER_ALPHA) * rawYawDeg;
+            filteredYawDeg = Constants.AlignShoot.YAW_FILTER_ALPHA * filteredYawDeg
+                    + (1.0 - Constants.AlignShoot.YAW_FILTER_ALPHA) * rawYawDeg;
         }
         return filteredYawDeg;
     }

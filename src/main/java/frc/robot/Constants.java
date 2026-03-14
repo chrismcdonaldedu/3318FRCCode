@@ -557,8 +557,12 @@ public final class Constants {
     // ALIGN-AND-SHOOT (stationary auto-align then shoot)
     // =========================================================================
     public static final class AlignShoot {
-        // Match AlignOnly so both commands feel identical while turning to target.
-        public static final double MAX_AUTO_AIM_OMEGA_RADPS = Vision.MAX_ROT_CMD;
+        // AlignAndShoot runs with shooter/feeder spin-up noise present, so use a
+        // slightly more damped turn loop than AlignOnly to avoid center hunting.
+        public static final double TURN_kP = 0.09; // TUNE ME
+        public static final double TURN_kD = 0.0;  // TUNE ME
+        public static final double YAW_FILTER_ALPHA = 0.78; // stronger smoothing
+        public static final double MAX_AUTO_AIM_OMEGA_RADPS = 0.75;
         // While the target is out of frame, keep sweeping at a controlled rate.
         public static final double SEARCH_OMEGA_RADPS = Math.toRadians(60.0); // TUNE ME
         // After losing a previously seen target, briefly hold still to ride out
@@ -567,10 +571,11 @@ public final class Constants {
         // Larger yaw errors are acquisition problems, not impossible shot geometry.
         public static final double ACQUIRE_YAW_MAX_DEG = 30.0; // TUNE ME
 
-        // Match AlignOnly tolerance and stable-hold timing before feeding.
-        public static final double YAW_TOLERANCE_DEG = Vision.YAW_TOLERANCE_DEG;
+        // Slightly wider hold window prevents unlock/relock chatter near center.
+        public static final double YAW_TOLERANCE_DEG = 3.5; // TUNE ME
+        public static final double YAW_BREAK_TOLERANCE_DEG = 6.0; // TUNE ME
         public static final double RPS_TOLERANCE_RPS = 1.5; // TUNE ME
-        public static final double SETTLE_TIME_SEC = 0.30; // TUNE ME
+        public static final double SETTLE_TIME_SEC = 0.20; // TUNE ME
         // During continuous hold-to-shoot, tolerate brief target/yaw dropouts
         // before stopping feed and forcing a full re-align.
         public static final double CONTINUOUS_FEED_REACQUIRE_SEC = 0.25; // TUNE ME
