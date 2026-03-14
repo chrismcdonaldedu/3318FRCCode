@@ -62,6 +62,16 @@ class VisionSupportTest {
     }
 
     @Test
+    void freshnessCheckUsesTimestampAge() {
+        VisionResult freshResult = new VisionResult(18, 0.0, 0.0, 20.0, 9.7, 0.0, 0.0, 1, 1, 0.0);
+        VisionResult staleResult = new VisionResult(18, 0.0, 0.0, 20.0, 8.9, 0.0, 0.0, 1, 1, 0.0);
+
+        assertTrue(VisionSupport.isResultFresh(freshResult, 10.0, 0.5));
+        assertFalse(VisionSupport.isResultFresh(staleResult, 10.0, 0.5));
+        assertFalse(VisionSupport.isResultFresh(null, 10.0, 0.5));
+    }
+
+    @Test
     void estimateHubCenterAveragesVisibleFacesNotIndividualTags() {
         VisionSupport.HubCenterEstimate estimate = VisionSupport.estimateHubCenter(List.of(
                 new VisionSupport.HubTagObservation(18, 0, 100.0, 200.0, 40.0),

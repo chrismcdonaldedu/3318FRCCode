@@ -58,6 +58,17 @@ public final class VisionSupport {
                 && nowSec - lastFrameTimestampSec <= heartbeatTimeoutSec;
     }
 
+    public static boolean isResultFresh(
+            VisionResult result,
+            double nowSec,
+            double freshnessThresholdSec) {
+        if (result == null || result.tagId() < 0 || !Double.isFinite(nowSec)) {
+            return false;
+        }
+        double ageSec = nowSec - result.timestampSec();
+        return Double.isFinite(ageSec) && ageSec >= 0.0 && ageSec < freshnessThresholdSec;
+    }
+
     public static double calibrateDistanceM(double rawDistanceM) {
         if (!Double.isFinite(rawDistanceM)) {
             return Double.NaN;

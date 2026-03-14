@@ -563,9 +563,13 @@ public class AlignAndShootCommand extends Command {
                     Constants.AlignShoot.MAX_AUTO_AIM_OMEGA_RADPS);
         }
 
+        boolean feedGateSettled = updateFeedGateTimer(
+                solution.feasible()
+                        && holdingAlignment
+                        && isShooterReady(solution.targetRps()));
         boolean feedGateReady = solution.feasible()
                 && alignmentLocked
-                && isShooterReady(solution.targetRps());
+                && feedGateSettled;
 
         return new ShotTracking(
                 rawYawDeg,
@@ -654,11 +658,10 @@ public class AlignAndShootCommand extends Command {
     }
 
     private boolean isResultFresh(VisionResult result) {
-        if (result == null || result.tagId() < 0) {
-            return false;
-        }
-        double ageSec = Timer.getFPGATimestamp() - result.timestampSec();
-        return ageSec < Constants.Vision.TARGET_LOSS_TOLERANCE_SEC;
+        return VisionSupport.isResultFresh(
+                result,
+                Timer.getFPGATimestamp(),
+                Constants.Vision.TARGET_LOSS_TOLERANCE_SEC);
     }
 
     private boolean hasShootableTarget(VisionResult result) {
@@ -706,6 +709,17 @@ public class AlignAndShootCommand extends Command {
     private void resetFeedGateTimer() {
         feedGateTimer.stop();
         feedGateTimer.reset();
+    }
+
+    private boolean updateFeedGateTimer(boolean readyNow) {
+        if (!readyNow) {
+            resetFeedGateTimer();
+            return false;
+        }
+        if (!feedGateTimer.isRunning()) {
+            feedGateTimer.restart();
+        }
+        return feedGateTimer.hasElapsed(Constants.AlignShoot.SETTLE_TIME_SEC);
     }
 
     private void resetContinuousLossTimer() {
