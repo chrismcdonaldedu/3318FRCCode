@@ -22,7 +22,7 @@ class ShooterSubsystemTest {
         double targetRps = ShooterSubsystem.calculateTargetRPS(
                 Constants.Shooter.MIDRANGE_REFERENCE_DISTANCE_M);
 
-        assertEquals(Constants.Shooter.TARGET_RPS, targetRps, 1e-9);
+        assertEquals(Constants.Shooter.MIDRANGE_REFERENCE_RPS, targetRps, 1e-9);
     }
 
     @Test
@@ -44,5 +44,13 @@ class ShooterSubsystemTest {
         double targetRps = ShooterSubsystem.calculateTargetRPS(0.5);
 
         assertEquals(Constants.Shooter.MIN_SHOT_RPS, targetRps, 1e-9);
+    }
+
+    @Test
+    void shotCurveDoesNotGetSlowerAsDistanceIncreases() {
+        double closeRps = ShooterSubsystem.calculateTargetRPS(Constants.Shooter.MEASURED_CLOSE_SHOT_DISTANCE_M);
+        double farRps = ShooterSubsystem.calculateTargetRPS(Constants.Shooter.MIDRANGE_REFERENCE_DISTANCE_M);
+
+        assertTrue(farRps >= closeRps);
     }
 }

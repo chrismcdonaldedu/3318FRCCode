@@ -314,8 +314,9 @@ public final class Constants {
         public static final double FALLBACK_RPS = 60.0; // TUNE ME
         public static final double MEASURED_CLOSE_SHOT_DISTANCE_M = Units.feetToMeters(4.5);
         public static final double MIDRANGE_REFERENCE_DISTANCE_M = 2.4;
+        public static final double MIDRANGE_REFERENCE_RPS = 68.0;
         public static final double EMPIRICAL_SHOT_SLOPE_RPS_PER_M =
-                (TARGET_RPS - FALLBACK_RPS)
+                (MIDRANGE_REFERENCE_RPS - FALLBACK_RPS)
                         / (MIDRANGE_REFERENCE_DISTANCE_M - MEASURED_CLOSE_SHOT_DISTANCE_M);
 
         // Shooter wheel PID (VelocityVoltage)
