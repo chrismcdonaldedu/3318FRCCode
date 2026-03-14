@@ -613,6 +613,9 @@ public class AlignAndShootCommand extends Command {
                     + String.format("%.2f", pitchFallbackM) + "m");
             distanceM = pitchFallbackM;
         }
+        if (Double.isFinite(distanceM)) {
+            distanceM = Math.max(0.1, distanceM + Constants.Vision.DISTANCE_CALIBRATION_OFFSET_M);
+        }
         return distanceM;
     }
 
