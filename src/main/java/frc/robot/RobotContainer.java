@@ -1010,7 +1010,10 @@ public class RobotContainer implements RobotRuntimeContainer {
 
     private double getManualDistanceShotTargetRps() {
         VisionResult latestVision = visionResult.get();
-        if (latestVision == null) {
+        if (!VisionSupport.isResultFresh(
+                latestVision,
+                Timer.getFPGATimestamp(),
+                Constants.Vision.TARGET_LOSS_TOLERANCE_SEC)) {
             return Constants.Shooter.FALLBACK_RPS;
         }
 

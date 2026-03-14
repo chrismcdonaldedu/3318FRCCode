@@ -28,9 +28,6 @@ import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.Constants;
 
 public class ShooterSubsystem extends SubsystemBase {
-    private static final double GRAVITY_MPS2 = 9.81;
-    private static final int MOVING_SHOT_SOLVE_ITERATIONS = 24;
-
     private final TalonFX leftShooter =
             new TalonFX(Constants.CAN.SHOOTER_LEFT, new CANBus(Constants.CAN.CTRE_CAN_BUS));
     private final TalonFX rightShooter =
@@ -166,81 +163,48 @@ public class ShooterSubsystem extends SubsystemBase {
     // --------------------------------------------------------------------------
     // calculateTargetRPS()
     //
-    // Solves projectile motion for the required wheel RPS given the horizontal
-    // distance to the HUB.  Assumes a fixed launch angle (configurable in
-    // Constants.Shooter.SHOT_ANGLE_DEG) and known shooter/target heights.
-    //
-    // Physics:
-    //   v² = (g × d²) / (2 × cos²θ × (d × tanθ − Δh))
-    //   where Δh = target_height − shooter_exit_height
-    //
-    // Then convert surface speed (m/s) to wheel RPS:
-    //   RPS = surface_speed / wheel_circumference / gear_ratio
-    //
-    // Returns TARGET_RPS as fallback if distance is invalid or the shot is
-    // physically impossible at the configured angle.
+    // Uses the robot's measured close shot and the existing 60 RPS warmup value
+    // as anchors for an empirical distance-to-speed curve.
     // --------------------------------------------------------------------------
     public static double calculateTargetRPS(double distanceM) {
-        double launchSpeedMps = calculateRequiredLaunchSpeedMps(distanceM);
-        if (!Double.isFinite(launchSpeedMps) || launchSpeedMps <= 0) {
+        if (!Double.isFinite(distanceM) || distanceM <= 0.0) {
             return Constants.Shooter.TARGET_RPS;
         }
-
-        return launchSpeedToMotorRps(launchSpeedMps);
+        return calculateEmpiricalTargetRps(distanceM);
     }
 
     public static ShotSolution calculateMovingShotSolution(
             double distanceM,
             double radialVelocityMps,
             double lateralVelocityMps) {
-        double launchSpeedMps = calculateRequiredLaunchSpeedMps(distanceM);
-        if (!Double.isFinite(launchSpeedMps) || launchSpeedMps <= 0) {
+        if (!Double.isFinite(distanceM) || distanceM <= 0.0) {
             return fallbackShotSolution();
         }
 
-        double minLaunchSpeedMps = motorRpsToLaunchSpeed(Constants.Shooter.MIN_SHOT_RPS);
-        double maxLaunchSpeedMps = motorRpsToLaunchSpeed(Constants.Shooter.MAX_SHOT_RPS);
-        double highHeightM = calculateVerticalDisplacement(
-                maxLaunchSpeedMps, distanceM, radialVelocityMps, lateralVelocityMps);
-        double deltaHeightM = Constants.Shooter.HUB_SCORING_HEIGHT_M
-                - Constants.Shooter.SHOOTER_EXIT_HEIGHT_M;
-        if (!Double.isFinite(highHeightM) || highHeightM < deltaHeightM) {
+        double stationaryTargetRps = calculateTargetRPS(distanceM);
+        if (!Double.isFinite(stationaryTargetRps) || stationaryTargetRps <= 0.0) {
             return fallbackShotSolution();
         }
 
-        double low = minLaunchSpeedMps;
-        double high = maxLaunchSpeedMps;
-        for (int i = 0; i < MOVING_SHOT_SOLVE_ITERATIONS; i++) {
-            double mid = (low + high) * 0.5;
-            double midHeightM = calculateVerticalDisplacement(
-                    mid, distanceM, radialVelocityMps, lateralVelocityMps);
-            if (!Double.isFinite(midHeightM) || midHeightM < deltaHeightM) {
-                low = mid;
-            } else {
-                high = mid;
-            }
-        }
-
-        double solvedLaunchSpeedMps = high;
-        double horizontalSpeedMps = solvedLaunchSpeedMps
-                * Math.cos(Math.toRadians(Constants.Shooter.SHOT_ANGLE_DEG));
-        if (Math.abs(lateralVelocityMps) >= horizontalSpeedMps) {
+        double angleRad = Math.toRadians(Constants.Shooter.SHOT_ANGLE_DEG);
+        double stationaryLaunchSpeedMps = motorRpsToLaunchSpeed(stationaryTargetRps);
+        double stationaryHorizontalSpeedMps = stationaryLaunchSpeedMps * Math.cos(angleRad);
+        double requiredShotLineSpeedMps = stationaryHorizontalSpeedMps + radialVelocityMps;
+        if (!Double.isFinite(requiredShotLineSpeedMps) || requiredShotLineSpeedMps <= 1e-6) {
             return fallbackShotSolution();
         }
-
-        double shotLineSpeedMps = Math.sqrt(
-                horizontalSpeedMps * horizontalSpeedMps
-                        - lateralVelocityMps * lateralVelocityMps)
-                + radialVelocityMps;
-        if (shotLineSpeedMps <= 1e-6) {
+        double requiredHorizontalSpeedMps = Math.hypot(requiredShotLineSpeedMps, lateralVelocityMps);
+        double solvedLaunchSpeedMps = requiredHorizontalSpeedMps / Math.cos(angleRad);
+        if (!Double.isFinite(solvedLaunchSpeedMps) || solvedLaunchSpeedMps <= 0.0) {
             return fallbackShotSolution();
         }
+        double targetRps = launchSpeedToMotorRps(solvedLaunchSpeedMps);
 
         return new ShotSolution(
-                launchSpeedToMotorRps(solvedLaunchSpeedMps),
+                targetRps,
                 solvedLaunchSpeedMps,
-                horizontalSpeedMps,
-                distanceM / shotLineSpeedMps,
+                requiredHorizontalSpeedMps,
+                distanceM / requiredShotLineSpeedMps,
                 true);
     }
 
@@ -282,58 +246,16 @@ public class ShooterSubsystem extends SubsystemBase {
                 + CONFIG_APPLY_RETRIES + " attempts. Last status: " + lastCode.getName());
     }
 
-    private static double calculateRequiredLaunchSpeedMps(double distanceM) {
-        if (!Double.isFinite(distanceM) || distanceM <= 0) {
-            return Double.NaN;
-        }
-
-        double angleRad = Math.toRadians(Constants.Shooter.SHOT_ANGLE_DEG);
-        double cosAngle = Math.cos(angleRad);
-        double tanAngle = Math.tan(angleRad);
-        double deltaH = Constants.Shooter.HUB_SCORING_HEIGHT_M
-                - Constants.Shooter.SHOOTER_EXIT_HEIGHT_M;
-
-        double denom = tanAngle * distanceM - deltaH;
-        if (denom <= 0) {
-            return Double.NaN;
-        }
-
-        double vSquared = (GRAVITY_MPS2 * distanceM * distanceM)
-                / (2.0 * cosAngle * cosAngle * denom);
-        if (!Double.isFinite(vSquared) || vSquared <= 0) {
-            return Double.NaN;
-        }
-        return Math.sqrt(vSquared);
-    }
-
-    private static double calculateVerticalDisplacement(
-            double launchSpeedMps,
-            double distanceM,
-            double radialVelocityMps,
-            double lateralVelocityMps) {
-        if (!Double.isFinite(launchSpeedMps) || launchSpeedMps <= 0
-                || !Double.isFinite(distanceM) || distanceM <= 0) {
-            return Double.NaN;
-        }
-
-        double angleRad = Math.toRadians(Constants.Shooter.SHOT_ANGLE_DEG);
-        double horizontalSpeedMps = launchSpeedMps * Math.cos(angleRad);
-        if (Math.abs(lateralVelocityMps) >= horizontalSpeedMps) {
-            return Double.NaN;
-        }
-
-        double shotLineSpeedMps = Math.sqrt(
-                horizontalSpeedMps * horizontalSpeedMps
-                        - lateralVelocityMps * lateralVelocityMps)
-                + radialVelocityMps;
-        if (shotLineSpeedMps <= 1e-6) {
-            return Double.NaN;
-        }
-
-        double timeOfFlightSec = distanceM / shotLineSpeedMps;
-        double verticalSpeedMps = launchSpeedMps * Math.sin(angleRad);
-        return verticalSpeedMps * timeOfFlightSec
-                - 0.5 * GRAVITY_MPS2 * timeOfFlightSec * timeOfFlightSec;
+    private static double calculateEmpiricalTargetRps(double distanceM) {
+        double extraDistanceM = Math.max(
+                0.0,
+                distanceM - Constants.Shooter.MEASURED_CLOSE_SHOT_DISTANCE_M);
+        double targetRps = Constants.Shooter.FALLBACK_RPS
+                + extraDistanceM * Constants.Shooter.EMPIRICAL_SHOT_SLOPE_RPS_PER_M;
+        return MathUtil.clamp(
+                targetRps,
+                Constants.Shooter.MIN_SHOT_RPS,
+                Constants.Shooter.MAX_SHOT_RPS);
     }
 
     private static double launchSpeedToMotorRps(double launchSpeedMps) {

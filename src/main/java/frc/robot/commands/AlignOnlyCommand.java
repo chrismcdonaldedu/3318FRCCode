@@ -150,11 +150,10 @@ public class AlignOnlyCommand extends Command {
     }
 
     private boolean isResultFresh(VisionResult result) {
-        if (result == null || result.tagId() < 0) {
-            return false;
-        }
-        double ageSec = Timer.getFPGATimestamp() - result.timestampSec();
-        return ageSec < Constants.Vision.TARGET_LOSS_TOLERANCE_SEC;
+        return VisionSupport.isResultFresh(
+                result,
+                Timer.getFPGATimestamp(),
+                Constants.Vision.TARGET_LOSS_TOLERANCE_SEC);
     }
 
     private double filterYaw(double rawYawDeg) {

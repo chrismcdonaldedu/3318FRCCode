@@ -289,21 +289,18 @@ public final class Constants {
         public static final double WHEEL_CIRCUMFERENCE_M = Math.PI * WHEEL_DIAMETER_M; // ~0.319m
         public static final double GEAR_RATIO             = 1.0;  // motor:wheel
 
-        // ---- Distance-based shot physics ----
-        // The shooter fires at a fixed mechanical angle. Given the distance to the
-        // HUB (from vision), we solve projectile motion for the required surface
-        // velocity, then convert to wheel RPS.
+        // ---- Distance-based shot model ----
+        // Anchor the curve to the robot's measured close shot:
+        // Right Bumper at 4.5 ft scores reliably at 52 RPS.
         //
-        // Equation:
-        //   v² = (g * d²) / (2 * cos²θ * (d * tanθ - Δh))
-        //   where Δh = target_height - shooter_exit_height
-        //
-        // TUNE ME: Measure the actual launch angle with a protractor or slow-mo video.
+        // Preserve the existing 60 RPS warmup value at a representative midrange
+        // shot, then interpolate between/through those two points until more
+        // measured shot data is available.
         public static final double SHOT_ANGLE_DEG        = 60.0;  // TUNE ME
         // Height of the shooter exit above the floor (20 inches).
         public static final double SHOOTER_EXIT_HEIGHT_M = Units.inchesToMeters(16.5);
-        // Height of the HUB scoring opening (may differ from tag height of 1.124m).
-        public static final double HUB_SCORING_HEIGHT_M  = 1.8288; // TUNE ME
+        // AprilTags are mounted at 44.25 in, but the scoring opening is the upper HUB.
+        public static final double HUB_SCORING_HEIGHT_M  = Units.inchesToMeters(104.0);
 
         // RPS clamps — keep within motor/mechanism limits.
         // Kraken free speed ≈ 100 RPS at 12V; leave headroom for voltage droop.
@@ -315,6 +312,11 @@ public final class Constants {
         public static final double TARGET_RPS = 60.0;  // TUNE ME
         // Driver override speed when shooting without alignment/vision checks.
         public static final double FALLBACK_RPS = 52.0; // TUNE ME
+        public static final double MEASURED_CLOSE_SHOT_DISTANCE_M = Units.feetToMeters(4.5);
+        public static final double MIDRANGE_REFERENCE_DISTANCE_M = 2.4;
+        public static final double EMPIRICAL_SHOT_SLOPE_RPS_PER_M =
+                (TARGET_RPS - FALLBACK_RPS)
+                        / (MIDRANGE_REFERENCE_DISTANCE_M - MEASURED_CLOSE_SHOT_DISTANCE_M);
 
         // Shooter wheel PID (VelocityVoltage)
         // Kraken X60 at 1:1, 4" wheel, 12V supply:
