@@ -78,13 +78,13 @@ public class ShooterSubsystem extends SubsystemBase {
         applyWithRetry(() -> leftShooter.getConfigurator().apply(cfg), "Left shooter config");
         applyWithRetry(() -> rightShooter.getConfigurator().apply(cfg), "Right shooter config");
 
-        // Reduce CAN status frame rates — shooter doesn't need high-frequency updates.
-        // Velocity at 10 Hz is enough for isAtSpeed() checks.
+        // Reduce CAN status frame rates without starving the ready-to-shoot gate.
+        // Velocity needs low enough latency that isAtSpeed() can react promptly.
         // Position and temperature at 4 Hz — we rarely read these.
-        leftShooter.getVelocity().setUpdateFrequency(10);
+        leftShooter.getVelocity().setUpdateFrequency(Constants.Shooter.VELOCITY_SIGNAL_HZ);
         leftShooter.getPosition().setUpdateFrequency(4);
         leftShooter.getDeviceTemp().setUpdateFrequency(1);
-        rightShooter.getVelocity().setUpdateFrequency(10);
+        rightShooter.getVelocity().setUpdateFrequency(Constants.Shooter.VELOCITY_SIGNAL_HZ);
         rightShooter.getPosition().setUpdateFrequency(4);
         rightShooter.getDeviceTemp().setUpdateFrequency(1);
         applyWithRetry(

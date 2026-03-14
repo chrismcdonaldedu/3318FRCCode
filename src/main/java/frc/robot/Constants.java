@@ -327,21 +327,22 @@ public final class Constants {
         // Source: Typical Kraken X60 shooter values from competition robots.
         public static final double SHOOTER_kS = 0.15;   // Volts (measured typical Kraken)
         public static final double SHOOTER_kV = 0.12;   // 12V / 100 RPS free speed
-        public static final double SHOOTER_kP = 0.08;   // V/RPS error (slightly aggressive for fast spinup)
+        public static final double SHOOTER_kP = 0.09;   // V/RPS error (faster spinup without pushing overshoot)
 
         // ---- Current limits (centralized) ----
         public static final int STATOR_CURRENT_LIMIT_A = 80;
         public static final int SUPPLY_CURRENT_LIMIT_A = 60;
+        public static final double VELOCITY_SIGNAL_HZ = 50.0;
 
         // How close the wheels need to be to target before we consider "at speed"
-        public static final double TOLERANCE_RPS = 1.5;
+        public static final double TOLERANCE_RPS = 2.0;
 
         // Max time to wait for wheels to reach speed before shooting anyway
         public static final double AT_SPEED_TIMEOUT_SEC = 1.5;
 
         // "Clear" pulse: briefly run feeder backward to prevent double-feeding
         public static final double CLEAR_POWER    = -0.25;
-        public static final double CLEAR_TIME_SEC =  0.15;
+        public static final double CLEAR_TIME_SEC =  0.10;
 
         // Feed: all three mechanisms push the game piece into the shooter
         public static final double FEED_POWER    = 0.80;
@@ -592,8 +593,8 @@ public final class Constants {
         public static final double YAW_BREAK_TOLERANCE_DEG = 6.0; // TUNE ME
         // Require break-threshold error to persist briefly before unlocking.
         public static final double LOCK_BREAK_DEBOUNCE_SEC = 0.18; // TUNE ME
-        public static final double RPS_TOLERANCE_RPS = 1.5; // TUNE ME
-        public static final double SETTLE_TIME_SEC = 0.20; // TUNE ME
+        public static final double RPS_TOLERANCE_RPS = 2.0; // TUNE ME
+        public static final double SETTLE_TIME_SEC = 0.12; // TUNE ME
         // During continuous hold-to-shoot, tolerate brief target/yaw dropouts
         // before stopping feed and forcing a full re-align.
         public static final double CONTINUOUS_FEED_REACQUIRE_SEC = 0.25; // TUNE ME
