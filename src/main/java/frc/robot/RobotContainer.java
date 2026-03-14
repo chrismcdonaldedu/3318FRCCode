@@ -928,7 +928,7 @@ public class RobotContainer implements RobotRuntimeContainer {
 
     private Command buildAutoManualDistanceShootCommand() {
         return Commands.defer(() -> {
-            double targetRps = 60.0;
+            double targetRps = 52.0;
             //double targetRps = getManualDistanceShotTargetRps();
             System.out.println("[AutoManualDistanceShoot] targetRps=" + formatSigned(targetRps));
             return shooter.buildContinuousShootRoutine(feeder, hopper, intake, targetRps)
