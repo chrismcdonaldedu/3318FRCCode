@@ -29,7 +29,7 @@ public class RobotDashboardService {
         void selectAutoByName(String autoName);
     }
 
-    private static final String CONTRACT_VERSION = "2026.15.0";
+    private static final String CONTRACT_VERSION = "2026.16.0";
 
     private final Actions actions;
 
@@ -52,6 +52,10 @@ public class RobotDashboardService {
     private final DoublePublisher driverCommandedOmegaPub;
     private final DoublePublisher measuredOmegaPub;
     private final BooleanPublisher driverFieldRelativeEnabledPub;
+    private final BooleanPublisher headingHoldActivePub;
+    private final DoublePublisher headingHoldTargetPub;
+    private final DoublePublisher headingHoldErrorPub;
+    private final DoublePublisher headingHoldCorrectionPub;
 
     private final DoublePublisher shooterLeftRpsPub;
     private final DoublePublisher shooterRightRpsPub;
@@ -251,6 +255,10 @@ public class RobotDashboardService {
         driverCommandedOmegaPub = table.getDoubleTopic("drive/commanded_omega_radps").publish();
         measuredOmegaPub = table.getDoubleTopic("drive/measured_omega_radps").publish();
         driverFieldRelativeEnabledPub = table.getBooleanTopic("drive/field_relative_enabled").publish();
+        headingHoldActivePub = table.getBooleanTopic("drive/heading_hold_active").publish();
+        headingHoldTargetPub = table.getDoubleTopic("drive/heading_hold_target_deg").publish();
+        headingHoldErrorPub = table.getDoubleTopic("drive/heading_hold_error_deg").publish();
+        headingHoldCorrectionPub = table.getDoubleTopic("drive/heading_hold_correction_radps").publish();
 
         shooterLeftRpsPub = table.getDoubleTopic("shooter/left_rps").publish();
         shooterRightRpsPub = table.getDoubleTopic("shooter/right_rps").publish();
@@ -449,6 +457,10 @@ public class RobotDashboardService {
         driverCommandedOmegaPub.set(snapshot.driverCommandedOmegaRadPerSec());
         measuredOmegaPub.set(snapshot.measuredOmegaRadPerSec());
         driverFieldRelativeEnabledPub.set(snapshot.driverFieldRelativeEnabled());
+        headingHoldActivePub.set(snapshot.headingHoldActive());
+        headingHoldTargetPub.set(snapshot.headingHoldTargetDeg());
+        headingHoldErrorPub.set(snapshot.headingHoldErrorDeg());
+        headingHoldCorrectionPub.set(snapshot.headingHoldCorrectionOmegaRadPerSec());
 
         shooterLeftRpsPub.set(snapshot.shooterLeftRps());
         shooterRightRpsPub.set(snapshot.shooterRightRps());

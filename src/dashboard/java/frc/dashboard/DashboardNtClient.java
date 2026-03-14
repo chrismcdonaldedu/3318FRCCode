@@ -51,6 +51,14 @@ public class DashboardNtClient implements AutoCloseable {
             table.getDoubleTopic("drive/measured_omega_radps").subscribe(Double.NaN);
     private final BooleanSubscriber driverFieldRelativeEnabledSub =
             table.getBooleanTopic("drive/field_relative_enabled").subscribe(false);
+    private final BooleanSubscriber headingHoldActiveSub =
+            table.getBooleanTopic("drive/heading_hold_active").subscribe(false);
+    private final DoubleSubscriber headingHoldTargetSub =
+            table.getDoubleTopic("drive/heading_hold_target_deg").subscribe(Double.NaN);
+    private final DoubleSubscriber headingHoldErrorSub =
+            table.getDoubleTopic("drive/heading_hold_error_deg").subscribe(Double.NaN);
+    private final DoubleSubscriber headingHoldCorrectionSub =
+            table.getDoubleTopic("drive/heading_hold_correction_radps").subscribe(Double.NaN);
     // Fallback telemetry path while contract topics are being brought up.
     private final DoubleSubscriber pigeonYawSmartSub =
             smartDashboardTable.getDoubleTopic("Swerve/PigeonYawDeg").subscribe(Double.NaN);
@@ -339,6 +347,10 @@ public class DashboardNtClient implements AutoCloseable {
                 driverCommandedOmegaSub.get(),
                 measuredOmegaSub.get(),
                 driverFieldRelativeEnabledSub.get(),
+                headingHoldActiveSub.get(),
+                headingHoldTargetSub.get(),
+                headingHoldErrorSub.get(),
+                headingHoldCorrectionSub.get(),
                 shooterLeftSub.get(),
                 shooterRightSub.get(),
                 shooterAtSpeedSub.get(),

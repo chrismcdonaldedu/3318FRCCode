@@ -273,6 +273,18 @@ public final class Constants {
         // 0.25 = 25% of normal speed when precision mode is active.
         public static final double PRECISION_SPEED_SCALE = 0.25;
 
+        // ---- Driver heading-hold assist ----
+        // When the driver is translating but not commanding turn, use the Pigeon
+        // yaw to hold the current heading. This is a drivability aid, not a
+        // substitute for fixing bad module calibration or mechanical issues.
+        public static final boolean ENABLE_HEADING_HOLD_ASSIST = true;
+        public static final double HEADING_HOLD_MIN_TRANSLATION_MPS = 0.25;
+        public static final double HEADING_HOLD_TOLERANCE_DEG = 1.5;
+        public static final double HEADING_HOLD_kP = 0.05;          // rad/s per deg
+        public static final double HEADING_HOLD_kD = 0.0;
+        public static final double HEADING_HOLD_MAX_OMEGA_RADPS = 1.0;
+        public static final double HEADING_HOLD_STALE_RESET_SEC = 0.10;
+
         // ---- Current limits (centralized) ----
         public static final int DRIVE_STATOR_CURRENT_LIMIT_A = 60;
         public static final int DRIVE_SUPPLY_CURRENT_LIMIT_A = 40;
