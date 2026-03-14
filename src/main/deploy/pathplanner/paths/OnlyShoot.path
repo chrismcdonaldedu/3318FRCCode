@@ -3,25 +3,25 @@
   "waypoints": [
     {
       "anchor": {
-        "x": 0.4894698795180723,
-        "y": 0.680192771084337
+        "x": 3.6038674698795177,
+        "y": 5.182409638554216
       },
       "prevControl": null,
       "nextControl": {
-        "x": 1.530826868322737,
-        "y": 1.1133439085841377
+        "x": 3.150994854207342,
+        "y": 4.979869533228383
       },
       "isLocked": false,
-      "linkedName": "BlueOutpost"
+      "linkedName": null
     },
     {
       "anchor": {
-        "x": 1.5494578313253013,
-        "y": 1.2265783132530124
+        "x": 2.8280000000000003,
+        "y": 4.013144578313253
       },
       "prevControl": {
-        "x": 0.3800384486365369,
-        "y": 0.5354306730595451
+        "x": 3.0973201549176674,
+        "y": 5.098883101620784
       },
       "nextControl": null,
       "isLocked": false,
@@ -33,8 +33,8 @@
   "pointTowardsZones": [],
   "eventMarkers": [
     {
-      "name": "AutoShoot",
-      "waypointRelativePos": 1.0,
+      "name": "IntakeDeployOnly",
+      "waypointRelativePos": 0.2491315136476387,
       "endWaypointRelativePos": null,
       "command": null
     }
@@ -49,13 +49,13 @@
   },
   "goalEndState": {
     "velocity": 0,
-    "rotation": -132.96908576314692
+    "rotation": 180.0
   },
   "reversed": false,
   "folder": null,
   "idealStartingState": {
     "velocity": 0,
-    "rotation": 180.0
+    "rotation": 0.0
   },
   "useDefaultConstraints": true
 }
