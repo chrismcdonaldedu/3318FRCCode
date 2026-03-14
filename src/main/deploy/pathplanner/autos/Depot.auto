@@ -7,7 +7,7 @@
         {
           "type": "path",
           "data": {
-            "pathName": "StartToBlueDepot"
+            "pathName": "StartToDepot"
           }
         },
         {
@@ -19,7 +19,7 @@
         {
           "type": "path",
           "data": {
-            "pathName": "ShootFromBlueDepot"
+            "pathName": "ShootFromDepot"
           }
         }
       ]

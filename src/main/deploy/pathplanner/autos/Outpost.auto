@@ -7,19 +7,31 @@
         {
           "type": "path",
           "data": {
-            "pathName": "StartToBlueOutpost"
+            "pathName": "StartToOutpost"
+          }
+        },
+        {
+          "type": "named",
+          "data": {
+            "name": "IntakeDeployOnly"
           }
         },
         {
           "type": "wait",
           "data": {
-            "waitTime": 0
+            "waitTime": 3.0
           }
         },
         {
           "type": "path",
           "data": {
-            "pathName": "ShootFromBlueOutpost"
+            "pathName": "ShootFromOutpost"
+          }
+        },
+        {
+          "type": "named",
+          "data": {
+            "name": "AutoShoot"
           }
         }
       ]

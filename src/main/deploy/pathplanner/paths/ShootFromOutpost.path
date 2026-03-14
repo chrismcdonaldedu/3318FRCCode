@@ -3,25 +3,25 @@
   "waypoints": [
     {
       "anchor": {
-        "x": 13.00554921540656,
-        "y": 6.0081455064194005
+        "x": 0.4894698795180723,
+        "y": 0.680192771084337
       },
       "prevControl": null,
       "nextControl": {
-        "x": 14.907532097004278,
-        "y": 6.31867332382311
+        "x": 1.1045417783553622,
+        "y": 1.0738104353005498
       },
       "isLocked": false,
-      "linkedName": null
+      "linkedName": "BlueOutpost"
     },
     {
       "anchor": {
-        "x": 16.110827389443653,
-        "y": 7.41845934379458
+        "x": 2.2597590361445783,
+        "y": 2.024301204819277
       },
       "prevControl": {
-        "x": 14.622881597717546,
-        "y": 7.405520684736091
+        "x": 1.2284551818489868,
+        "y": 0.35156025286554704
       },
       "nextControl": null,
       "isLocked": false,
@@ -33,14 +33,8 @@
   "pointTowardsZones": [],
   "eventMarkers": [
     {
-      "name": "HomeIntake",
-      "waypointRelativePos": 0.0,
-      "endWaypointRelativePos": null,
-      "command": null
-    },
-    {
-      "name": "IntakeFuel",
-      "waypointRelativePos": 0.45,
+      "name": "AutoShoot",
+      "waypointRelativePos": 1.0,
       "endWaypointRelativePos": null,
       "command": null
     }
@@ -55,13 +49,13 @@
   },
   "goalEndState": {
     "velocity": 0,
-    "rotation": 180.0
+    "rotation": -132.96908576314692
   },
   "reversed": false,
   "folder": null,
   "idealStartingState": {
     "velocity": 0,
-    "rotation": 0.0
+    "rotation": 90.42440541936148
   },
   "useDefaultConstraints": true
 }
