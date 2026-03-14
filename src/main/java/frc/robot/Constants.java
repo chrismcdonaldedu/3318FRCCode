@@ -492,9 +492,11 @@ public final class Constants {
         //   Place robot at known distance d from a tag, measure tag pixel height px,
         //   then f = px * d / TAG_HEIGHT_M
         public static final double FOCAL_LENGTH_PIXELS = 600.0;  // CALIBRATE ME
-        // Range calibration offset applied after pinhole distance estimation.
-        // Negative means "actual is closer than camera math says."
-        public static final double DISTANCE_CALIBRATION_OFFSET_M = -Units.feetToMeters(1.0);
+        // Range calibration model applied after pinhole distance estimation:
+        //   calibrated = raw * DISTANCE_CALIBRATION_SCALE + DISTANCE_CALIBRATION_OFFSET_M
+        // Use scale for distance-dependent error, offset for fixed bias.
+        public static final double DISTANCE_CALIBRATION_SCALE = 0.88; // TUNE ME
+        public static final double DISTANCE_CALIBRATION_OFFSET_M = 0.0; // TUNE ME
 
         // AprilTag detector tuning. WPILib's defaults are tuned for speed, not
         // long-range detection on a low-res stream. These values keep more detail.
