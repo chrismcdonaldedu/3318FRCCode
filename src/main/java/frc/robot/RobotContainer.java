@@ -67,6 +67,7 @@ import frc.robot.vision.CameraDebugInfo;
 import frc.robot.subsystems.swerve.SwerveCorner;
 import frc.robot.subsystems.swerve.SwerveValidationMode;
 import frc.robot.util.DriverDriveUtil;
+import frc.robot.util.DriverHeadingHoldController;
 import frc.robot.vision.RioVisionThread;
 import frc.robot.vision.VisionResult;
 import frc.robot.vision.VisionSupport;
@@ -101,6 +102,7 @@ public class RobotContainer implements RobotRuntimeContainer {
     // =========================================================================
     private final CommandXboxController driverController   = new CommandXboxController(Constants.OI.DRIVER_PORT);
     private final CommandXboxController operatorController = new CommandXboxController(Constants.OI.OPERATOR_PORT);
+    private final DriverHeadingHoldController driverHeadingHoldController = new DriverHeadingHoldController();
 
     // =========================================================================
     // AUTONOMOUS SELECTOR
@@ -124,6 +126,15 @@ public class RobotContainer implements RobotRuntimeContainer {
     private double lastManualShooterTargetRps = 0.0;
     private double lastManualHopperPower = 0.0;
     private double lastIntakeTiltPower = 0.0;
+    private double lastDriverRawTurnInput = 0.0;
+    private double lastDriverCommandedTranslationMps = 0.0;
+    private double lastDriverCommandedOmegaRadPerSec = 0.0;
+    private boolean lastDriverFieldRelativeEnabled = true;
+    private boolean lastHeadingHoldActive = false;
+    private double lastHeadingHoldTargetDeg = Double.NaN;
+    private double lastHeadingHoldErrorDeg = Double.NaN;
+    private double lastHeadingHoldCorrectionOmegaRadPerSec = 0.0;
+    private double lastDriverDriveLoopTimestampSec = Double.NaN;
     private boolean intakeTiltManualAxisActive = false;
     // private boolean lastClimbArmed = false;
     private Command currentSwerveValidationCommand;
@@ -516,18 +527,40 @@ public class RobotContainer implements RobotRuntimeContainer {
                             rawForward,
                             rawLeft,
                             rawTurn);
+                    double nowSec = Timer.getFPGATimestamp();
+                    double currentHeadingDeg = swerve.getPigeonYawDeg();
+                    if (!Double.isFinite(lastDriverDriveLoopTimestampSec)
+                            || nowSec - lastDriverDriveLoopTimestampSec > Constants.Swerve.HEADING_HOLD_STALE_RESET_SEC) {
+                        driverHeadingHoldController.reset(currentHeadingDeg);
+                    }
+                    DriverHeadingHoldController.Output headingHoldOutput = driverHeadingHoldController.update(
+                            currentHeadingDeg,
+                            driveRequest.translationSpeedMps(),
+                            driveRequest.omegaRadPerSec());
                     swerve.drive(
                             driveRequest.xVelocityMps(),
                             driveRequest.yVelocityMps(),
-                            driveRequest.omegaRadPerSec(),
+                            headingHoldOutput.commandedOmegaRadPerSec(),
                             driveRequest.fieldRelative());
-                    publishDriverDriveTelemetry(rawForward, rawLeft, rawTurn, driveRequest);
+                    lastDriverRawTurnInput = rawTurn;
+                    lastDriverCommandedTranslationMps = driveRequest.translationSpeedMps();
+                    lastDriverCommandedOmegaRadPerSec = headingHoldOutput.commandedOmegaRadPerSec();
+                    lastDriverFieldRelativeEnabled = driveRequest.fieldRelative();
+                    lastHeadingHoldActive = headingHoldOutput.active();
+                    lastHeadingHoldTargetDeg = headingHoldOutput.targetHeadingDeg();
+                    lastHeadingHoldErrorDeg = headingHoldOutput.headingErrorDeg();
+                    lastHeadingHoldCorrectionOmegaRadPerSec = headingHoldOutput.correctionOmegaRadPerSec();
+                    lastDriverDriveLoopTimestampSec = nowSec;
+                    publishDriverDriveTelemetry(rawForward, rawLeft, rawTurn, driveRequest, headingHoldOutput);
 
                     driverCommandSummary = "drive x=" + formatSigned(driveRequest.xVelocityMps())
                             + "m/s y=" + formatSigned(driveRequest.yVelocityMps())
-                            + "m/s omega=" + formatSigned(driveRequest.omegaRadPerSec())
+                            + "m/s omega=" + formatSigned(headingHoldOutput.commandedOmegaRadPerSec())
                             + "rad/s field=" + yesNo(driveRequest.fieldRelative())
-                            + " precision=" + yesNo(driveRequest.precisionMode());
+                            + " precision=" + yesNo(driveRequest.precisionMode())
+                            + " hold=" + yesNo(headingHoldOutput.active())
+                            + " err=" + formatSigned(headingHoldOutput.headingErrorDeg())
+                            + " corr=" + formatSigned(headingHoldOutput.correctionOmegaRadPerSec());
                 }, swerve).withName("DriverFieldDriveDefault"));
 
         // Y button: Zero the gyro heading.
@@ -732,13 +765,6 @@ public class RobotContainer implements RobotRuntimeContainer {
 
     private DashboardSnapshot buildDashboardSnapshot() {
         var pose = swerve.getPose();
-        double driverRawForwardInput = getDriverForwardInput();
-        double driverRawLeftInput = getDriverLeftInput();
-        double driverRawTurnInput = getDriverTurnInput();
-        DriverDriveUtil.DriveRequest driverDriveRequest = getDriverDriveRequest(
-                driverRawForwardInput,
-                driverRawLeftInput,
-                driverRawTurnInput);
         double shooterTargetRps = Constants.Shooter.TARGET_RPS;
         if (AlignAndShootCommand.isTelemetryCommandActive()) {
             double alignTargetRps = AlignAndShootCommand.getTelemetryTargetRps();
@@ -804,11 +830,15 @@ public class RobotContainer implements RobotRuntimeContainer {
                 swerve.getPigeonYawDeg(),
                 swerve.getPigeonPitchDeg(),
                 swerve.getPigeonRollDeg(),
-                driverRawTurnInput,
-                driverDriveRequest.translationSpeedMps(),
-                driverDriveRequest.omegaRadPerSec(),
+                lastDriverRawTurnInput,
+                lastDriverCommandedTranslationMps,
+                lastDriverCommandedOmegaRadPerSec,
                 swerve.getRobotRelativeSpeeds().omegaRadiansPerSecond,
-                driverDriveRequest.fieldRelative(),
+                lastDriverFieldRelativeEnabled,
+                lastHeadingHoldActive,
+                lastHeadingHoldTargetDeg,
+                lastHeadingHoldErrorDeg,
+                lastHeadingHoldCorrectionOmegaRadPerSec,
                 shooter.getLeftRPS(),
                 shooter.getRightRPS(),
                 shooterAtTargetSpeed,
@@ -1015,13 +1045,20 @@ public class RobotContainer implements RobotRuntimeContainer {
             double rawForward,
             double rawLeft,
             double rawTurn,
-            DriverDriveUtil.DriveRequest driveRequest) {
+            DriverDriveUtil.DriveRequest driveRequest,
+            DriverHeadingHoldController.Output headingHoldOutput) {
         SmartDashboard.putNumber("Drive/RawForwardInput", rawForward);
         SmartDashboard.putNumber("Drive/RawLeftInput", rawLeft);
         SmartDashboard.putNumber("Drive/RawTurnInput", rawTurn);
         SmartDashboard.putNumber("Drive/CommandedTranslationMps", driveRequest.translationSpeedMps());
-        SmartDashboard.putNumber("Drive/CommandedOmegaRadPerSec", driveRequest.omegaRadPerSec());
+        SmartDashboard.putNumber("Drive/CommandedOmegaRadPerSec", headingHoldOutput.commandedOmegaRadPerSec());
         SmartDashboard.putBoolean("Drive/FieldRelativeEnabled", driveRequest.fieldRelative());
+        SmartDashboard.putBoolean("Drive/HeadingHoldActive", headingHoldOutput.active());
+        SmartDashboard.putNumber("Drive/HeadingHoldTargetDeg", headingHoldOutput.targetHeadingDeg());
+        SmartDashboard.putNumber("Drive/HeadingHoldErrorDeg", headingHoldOutput.headingErrorDeg());
+        SmartDashboard.putNumber(
+                "Drive/HeadingHoldCorrectionRadPerSec",
+                headingHoldOutput.correctionOmegaRadPerSec());
     }
 
     private boolean isDriverPrecisionMode() {
@@ -1295,10 +1332,14 @@ public class RobotContainer implements RobotRuntimeContainer {
 
     private void zeroHeading() {
         swerve.zeroHeading();
+        driverHeadingHoldController.reset(swerve.getPigeonYawDeg());
+        lastDriverDriveLoopTimestampSec = Double.NaN;
     }
 
     private void stopDrive() {
         stopSwerveValidation();
+        driverHeadingHoldController.reset(swerve.getPigeonYawDeg());
+        lastDriverDriveLoopTimestampSec = Double.NaN;
         swerve.stop();
     }
 

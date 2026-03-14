@@ -23,6 +23,7 @@ class MatchCsvLoggerTest {
                 1.5, 2.5, 45.0,
                 Double.NaN, Double.NaN, Double.NaN,
                 0.05, 1.2, 0.3, 0.4, true,
+                false, Double.NaN, Double.NaN, Double.NaN,
                 80.0, 79.0, true,
                 true, false, 30.0, 5.0, 3.0, 2.0,
                 false, 0.0, 0.0,

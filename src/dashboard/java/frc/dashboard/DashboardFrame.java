@@ -157,6 +157,7 @@ public class DashboardFrame extends JFrame {
     private final JLabel cameraErrorLabel = new JLabel("Error: --");
     private final JLabel pigeonLabel = new JLabel("Pigeon: Y -- P -- R --");
     private final JLabel driveDebugLabel = new JLabel("Drive dbg: turn --  cmd w --  meas w --  field --");
+    private final JLabel headingHoldLabel = new JLabel("Hold: OFF tgt -- err -- corr --");
 
     // Operator tab: motor temperatures
     private final JLabel driveTempLabel = new JLabel("Drive: FL -- FR -- BL -- BR --");
@@ -400,6 +401,7 @@ public class DashboardFrame extends JFrame {
         styleCompactLabel(cameraErrorLabel);
         styleMetricLabel(pigeonLabel);
         styleMetricLabel(driveDebugLabel);
+        styleMetricLabel(headingHoldLabel);
         styleMetricLabel(driveTempLabel);
         styleMetricLabel(shooterTempLabel);
 
@@ -422,7 +424,8 @@ public class DashboardFrame extends JFrame {
                 cameraDebugLabel,
                 cameraErrorLabel,
                 pigeonLabel,
-                driveDebugLabel));
+                driveDebugLabel,
+                headingHoldLabel));
         top.add(wrapLabelCard("Motor Temps", driveTempLabel, shooterTempLabel));
         root.add(top, BorderLayout.CENTER);
 
@@ -1185,6 +1188,20 @@ public class DashboardFrame extends JFrame {
                 && Math.abs(data.driverCommandedOmegaRadPerSec()) <= 0.05
                 && Math.abs(data.measuredOmegaRadPerSec()) > 0.25;
         driveDebugLabel.setForeground(!driveDebugFinite ? WARN : unexpectedOmega ? BAD : TEXT);
+        headingHoldLabel.setText("Hold: " + (data.headingHoldActive() ? "ON" : "OFF")
+                + "  tgt " + formatMaybe(data.headingHoldTargetDeg())
+                + "  err " + formatMaybe(data.headingHoldErrorDeg())
+                + "  corr " + formatMaybe(data.headingHoldCorrectionOmegaRadPerSec()));
+        boolean headingHoldFinite = !data.headingHoldActive()
+                || (Double.isFinite(data.headingHoldTargetDeg())
+                && Double.isFinite(data.headingHoldErrorDeg())
+                && Double.isFinite(data.headingHoldCorrectionOmegaRadPerSec()));
+        boolean headingHoldLargeError = headingHoldFinite
+                && data.headingHoldActive()
+                && Math.abs(data.headingHoldErrorDeg()) > 5.0;
+        headingHoldLabel.setForeground(!headingHoldFinite ? WARN
+                : !data.headingHoldActive() ? MUTED
+                : headingHoldLargeError ? WARN : OK);
 
         // Operator tab: motor temperatures
         updateTemperatureLabels(data);
@@ -1744,6 +1761,11 @@ public class DashboardFrame extends JFrame {
                 .append(" cmdOmega=").append(formatMaybe(data.driverCommandedOmegaRadPerSec()))
                 .append(" measuredOmega=").append(formatMaybe(data.measuredOmegaRadPerSec()))
                 .append(" fieldRelative=").append(data.driverFieldRelativeEnabled()).append('\n');
+        sb.append("HeadingHold: active=").append(data.headingHoldActive())
+                .append(" targetDeg=").append(formatMaybe(data.headingHoldTargetDeg()))
+                .append(" errorDeg=").append(formatMaybe(data.headingHoldErrorDeg()))
+                .append(" correctionOmega=").append(formatMaybe(data.headingHoldCorrectionOmegaRadPerSec()))
+                .append('\n');
         sb.append("Swerve angles: FL=").append(ONE_DECIMAL.format(data.swerveFLAngleDeg()))
                 .append(" FR=").append(ONE_DECIMAL.format(data.swerveFRAngleDeg()))
                 .append(" BL=").append(ONE_DECIMAL.format(data.swerveBLAngleDeg()))
@@ -1880,6 +1902,20 @@ public class DashboardFrame extends JFrame {
                         + " cmdOmega=" + formatMaybe(data.driverCommandedOmegaRadPerSec())
                         + " measOmega=" + formatMaybe(data.measuredOmegaRadPerSec())
                         + " fieldRel=" + data.driverFieldRelativeEnabled());
+        boolean headingHoldFinite = !data.headingHoldActive()
+                || (Double.isFinite(data.headingHoldTargetDeg())
+                && Double.isFinite(data.headingHoldErrorDeg())
+                && Double.isFinite(data.headingHoldCorrectionOmegaRadPerSec()));
+        boolean headingHoldHealthy = !data.headingHoldActive()
+                || (headingHoldFinite && Math.abs(data.headingHoldErrorDeg()) <= 5.0);
+        appendDeviceLine(
+                sb,
+                statusFromBoolean(connected, liveTelemetry, headingHoldHealthy, "CHECK"),
+                "Drive heading hold",
+                "active=" + data.headingHoldActive()
+                        + " target=" + formatMaybe(data.headingHoldTargetDeg())
+                        + " err=" + formatMaybe(data.headingHoldErrorDeg())
+                        + " corr=" + formatMaybe(data.headingHoldCorrectionOmegaRadPerSec()));
         appendDeviceLine(
                 sb,
                 statusFromBoolean(connected, liveTelemetry, data.cameraConnected(), "WARN"),

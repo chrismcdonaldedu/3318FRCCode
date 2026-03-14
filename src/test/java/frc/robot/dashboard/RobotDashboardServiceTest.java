@@ -56,6 +56,10 @@ class RobotDashboardServiceTest {
     private DoubleSubscriber driverCommandedOmegaSub;
     private DoubleSubscriber measuredOmegaSub;
     private BooleanSubscriber driverFieldRelativeEnabledSub;
+    private BooleanSubscriber headingHoldActiveSub;
+    private DoubleSubscriber headingHoldTargetSub;
+    private DoubleSubscriber headingHoldErrorSub;
+    private DoubleSubscriber headingHoldCorrectionSub;
 
     @BeforeEach
     void setUp() {
@@ -97,6 +101,10 @@ class RobotDashboardServiceTest {
         driverCommandedOmegaSub = table.getDoubleTopic("drive/commanded_omega_radps").subscribe(Double.NaN);
         measuredOmegaSub = table.getDoubleTopic("drive/measured_omega_radps").subscribe(Double.NaN);
         driverFieldRelativeEnabledSub = table.getBooleanTopic("drive/field_relative_enabled").subscribe(false);
+        headingHoldActiveSub = table.getBooleanTopic("drive/heading_hold_active").subscribe(false);
+        headingHoldTargetSub = table.getDoubleTopic("drive/heading_hold_target_deg").subscribe(Double.NaN);
+        headingHoldErrorSub = table.getDoubleTopic("drive/heading_hold_error_deg").subscribe(Double.NaN);
+        headingHoldCorrectionSub = table.getDoubleTopic("drive/heading_hold_correction_radps").subscribe(Double.NaN);
     }
 
     @AfterEach
@@ -341,7 +349,11 @@ class RobotDashboardServiceTest {
                 1.6,
                 0.35,
                 0.42,
-                true));
+                true,
+                true,
+                90.0,
+                -2.0,
+                -0.3));
         nt.flush();
 
         assertEquals(0.08, driverRawTurnInputSub.get(), 1e-9);
@@ -349,6 +361,10 @@ class RobotDashboardServiceTest {
         assertEquals(0.35, driverCommandedOmegaSub.get(), 1e-9);
         assertEquals(0.42, measuredOmegaSub.get(), 1e-9);
         assertEquals(true, driverFieldRelativeEnabledSub.get());
+        assertEquals(true, headingHoldActiveSub.get());
+        assertEquals(90.0, headingHoldTargetSub.get(), 1e-9);
+        assertEquals(-2.0, headingHoldErrorSub.get(), 1e-9);
+        assertEquals(-0.3, headingHoldCorrectionSub.get(), 1e-9);
     }
 
     @Test
@@ -484,7 +500,7 @@ class RobotDashboardServiceTest {
             boolean climberArmed,
             double timestampSec) {
         return snapshot(mode, enabled, climberArmed, timestampSec, "--", "--", 0, 0.0, "",
-                0.0, 0.0, 0.0, 0.0, false);
+                0.0, 0.0, 0.0, 0.0, false, false, Double.NaN, Double.NaN, Double.NaN);
     }
 
     private static DashboardSnapshot snapshot(
@@ -511,7 +527,11 @@ class RobotDashboardServiceTest {
                 0.0,
                 0.0,
                 0.0,
-                false);
+                false,
+                false,
+                Double.NaN,
+                Double.NaN,
+                Double.NaN);
     }
 
     private static DashboardSnapshot snapshot(
@@ -528,7 +548,11 @@ class RobotDashboardServiceTest {
             double driverCommandedTranslationMps,
             double driverCommandedOmegaRadPerSec,
             double measuredOmegaRadPerSec,
-            boolean driverFieldRelativeEnabled) {
+            boolean driverFieldRelativeEnabled,
+            boolean headingHoldActive,
+            double headingHoldTargetDeg,
+            double headingHoldErrorDeg,
+            double headingHoldCorrectionOmegaRadPerSec) {
         return new DashboardSnapshot(
                 timestampSec,
                 mode,
@@ -546,6 +570,10 @@ class RobotDashboardServiceTest {
                 driverCommandedOmegaRadPerSec,
                 measuredOmegaRadPerSec,
                 driverFieldRelativeEnabled,
+                headingHoldActive,
+                headingHoldTargetDeg,
+                headingHoldErrorDeg,
+                headingHoldCorrectionOmegaRadPerSec,
                 0.0,
                 0.0,
                 false,
