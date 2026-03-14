@@ -926,7 +926,8 @@ public class RobotContainer implements RobotRuntimeContainer {
 
     private Command buildAutoManualDistanceShootCommand() {
         return Commands.defer(() -> {
-            double targetRps = getManualDistanceShotTargetRps();
+            double targetRps = 60.0;
+            //double targetRps = getManualDistanceShotTargetRps();
             System.out.println("[AutoManualDistanceShoot] targetRps=" + formatSigned(targetRps));
             return shooter.buildShootRoutine(feeder, hopper, intake, targetRps)
                     .withName("AutoManualDistanceShootActive");
@@ -1010,10 +1011,7 @@ public class RobotContainer implements RobotRuntimeContainer {
 
     private double getManualDistanceShotTargetRps() {
         VisionResult latestVision = visionResult.get();
-        if (!VisionSupport.isResultFresh(
-                latestVision,
-                Timer.getFPGATimestamp(),
-                Constants.Vision.TARGET_LOSS_TOLERANCE_SEC)) {
+        if (latestVision == null) {
             return Constants.Shooter.FALLBACK_RPS;
         }
 
