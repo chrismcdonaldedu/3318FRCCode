@@ -11,15 +11,15 @@
           }
         },
         {
-          "type": "named",
-          "data": {
-            "name": "IntakeDeployOnly"
-          }
-        },
-        {
           "type": "path",
           "data": {
             "pathName": "OnlyShoot"
+          }
+        },
+        {
+          "type": "named",
+          "data": {
+            "name": "IntakeDeployOnly"
           }
         },
         {
