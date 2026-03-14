@@ -199,12 +199,14 @@ public class SwerveSubsystem extends SubsystemBase {
         field.setRobotPose(getPose());
 
         // Publish useful debugging data to SmartDashboard
+        ChassisSpeeds measuredSpeeds = getRobotRelativeSpeeds();
         SmartDashboard.putNumber("Swerve/HeadingDeg",        getHeading().getDegrees());
         SmartDashboard.putNumber("Swerve/PigeonYawDeg",      getPigeonYawDeg());
         SmartDashboard.putNumber("Swerve/PigeonPitchDeg",    getPigeonPitchDeg());
         SmartDashboard.putNumber("Swerve/PigeonRollDeg",     getPigeonRollDeg());
         SmartDashboard.putNumber("Swerve/PoseX_m",           getPose().getX());
         SmartDashboard.putNumber("Swerve/PoseY_m",           getPose().getY());
+        SmartDashboard.putNumber("Swerve/MeasuredOmegaRadPerSec", measuredSpeeds.omegaRadiansPerSecond);
 
         // ---- Throttled diagnostics (every 100ms) ----
         // Module angles and CANCoder health are low-priority telemetry.

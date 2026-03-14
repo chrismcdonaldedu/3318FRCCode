@@ -509,12 +509,19 @@ public class RobotContainer implements RobotRuntimeContainer {
         // DEADBAND IS APPLIED HERE on raw axis values (0.0–1.0), NOT after scaling.
         swerve.setDefaultCommand(
                 Commands.run(() -> {
-                    DriverDriveUtil.DriveRequest driveRequest = getDriverDriveRequest();
+                    double rawForward = getDriverForwardInput();
+                    double rawLeft = getDriverLeftInput();
+                    double rawTurn = getDriverTurnInput();
+                    DriverDriveUtil.DriveRequest driveRequest = getDriverDriveRequest(
+                            rawForward,
+                            rawLeft,
+                            rawTurn);
                     swerve.drive(
                             driveRequest.xVelocityMps(),
                             driveRequest.yVelocityMps(),
                             driveRequest.omegaRadPerSec(),
                             driveRequest.fieldRelative());
+                    publishDriverDriveTelemetry(rawForward, rawLeft, rawTurn, driveRequest);
 
                     driverCommandSummary = "drive x=" + formatSigned(driveRequest.xVelocityMps())
                             + "m/s y=" + formatSigned(driveRequest.yVelocityMps())
@@ -725,6 +732,13 @@ public class RobotContainer implements RobotRuntimeContainer {
 
     private DashboardSnapshot buildDashboardSnapshot() {
         var pose = swerve.getPose();
+        double driverRawForwardInput = getDriverForwardInput();
+        double driverRawLeftInput = getDriverLeftInput();
+        double driverRawTurnInput = getDriverTurnInput();
+        DriverDriveUtil.DriveRequest driverDriveRequest = getDriverDriveRequest(
+                driverRawForwardInput,
+                driverRawLeftInput,
+                driverRawTurnInput);
         double shooterTargetRps = Constants.Shooter.TARGET_RPS;
         if (AlignAndShootCommand.isTelemetryCommandActive()) {
             double alignTargetRps = AlignAndShootCommand.getTelemetryTargetRps();
@@ -790,6 +804,11 @@ public class RobotContainer implements RobotRuntimeContainer {
                 swerve.getPigeonYawDeg(),
                 swerve.getPigeonPitchDeg(),
                 swerve.getPigeonRollDeg(),
+                driverRawTurnInput,
+                driverDriveRequest.translationSpeedMps(),
+                driverDriveRequest.omegaRadPerSec(),
+                swerve.getRobotRelativeSpeeds().omegaRadiansPerSecond,
+                driverDriveRequest.fieldRelative(),
                 shooter.getLeftRPS(),
                 shooter.getRightRPS(),
                 shooterAtTargetSpeed,
@@ -962,10 +981,20 @@ public class RobotContainer implements RobotRuntimeContainer {
     }
 
     private DriverDriveUtil.DriveRequest getDriverDriveRequest() {
-        return DriverDriveUtil.shapeDrive(
+        return getDriverDriveRequest(
                 getDriverForwardInput(),
                 getDriverLeftInput(),
-                getDriverTurnInput(),
+                getDriverTurnInput());
+    }
+
+    private DriverDriveUtil.DriveRequest getDriverDriveRequest(
+            double rawForward,
+            double rawLeft,
+            double rawTurn) {
+        return DriverDriveUtil.shapeDrive(
+                rawForward,
+                rawLeft,
+                rawTurn,
                 isDriverPrecisionMode(),
                 isDriverFieldRelative());
     }
@@ -980,6 +1009,19 @@ public class RobotContainer implements RobotRuntimeContainer {
 
     private double getDriverTurnInput() {
         return -driverController.getRightX();
+    }
+
+    private void publishDriverDriveTelemetry(
+            double rawForward,
+            double rawLeft,
+            double rawTurn,
+            DriverDriveUtil.DriveRequest driveRequest) {
+        SmartDashboard.putNumber("Drive/RawForwardInput", rawForward);
+        SmartDashboard.putNumber("Drive/RawLeftInput", rawLeft);
+        SmartDashboard.putNumber("Drive/RawTurnInput", rawTurn);
+        SmartDashboard.putNumber("Drive/CommandedTranslationMps", driveRequest.translationSpeedMps());
+        SmartDashboard.putNumber("Drive/CommandedOmegaRadPerSec", driveRequest.omegaRadPerSec());
+        SmartDashboard.putBoolean("Drive/FieldRelativeEnabled", driveRequest.fieldRelative());
     }
 
     private boolean isDriverPrecisionMode() {

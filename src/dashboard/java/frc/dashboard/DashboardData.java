@@ -14,6 +14,12 @@ public record DashboardData(
         double pigeonYawDeg,
         double pigeonPitchDeg,
         double pigeonRollDeg,
+        // Driver turn debug
+        double driverRawTurnInput,
+        double driverCommandedTranslationMps,
+        double driverCommandedOmegaRadPerSec,
+        double measuredOmegaRadPerSec,
+        boolean driverFieldRelativeEnabled,
         double shooterLeftRps,
         double shooterRightRps,
         boolean shooterAtSpeed,

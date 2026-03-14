@@ -6,6 +6,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import edu.wpi.first.networktables.BooleanSubscriber;
 import edu.wpi.first.networktables.DoubleSubscriber;
 import edu.wpi.first.networktables.IntegerPublisher;
 import edu.wpi.first.networktables.IntegerSubscriber;
@@ -50,6 +51,11 @@ class RobotDashboardServiceTest {
     private IntegerSubscriber controlEventSeqSub;
     private DoubleSubscriber controlEventTimestampSub;
     private StringSubscriber controlEventMessageSub;
+    private DoubleSubscriber driverRawTurnInputSub;
+    private DoubleSubscriber driverCommandedTranslationSub;
+    private DoubleSubscriber driverCommandedOmegaSub;
+    private DoubleSubscriber measuredOmegaSub;
+    private BooleanSubscriber driverFieldRelativeEnabledSub;
 
     @BeforeEach
     void setUp() {
@@ -86,6 +92,11 @@ class RobotDashboardServiceTest {
         controlEventSeqSub = table.getIntegerTopic("controls/last_event_seq").subscribe(0);
         controlEventTimestampSub = table.getDoubleTopic("controls/last_event_timestamp_sec").subscribe(0.0);
         controlEventMessageSub = table.getStringTopic("controls/last_event_message").subscribe("");
+        driverRawTurnInputSub = table.getDoubleTopic("drive/raw_turn_input").subscribe(Double.NaN);
+        driverCommandedTranslationSub = table.getDoubleTopic("drive/commanded_translation_mps").subscribe(Double.NaN);
+        driverCommandedOmegaSub = table.getDoubleTopic("drive/commanded_omega_radps").subscribe(Double.NaN);
+        measuredOmegaSub = table.getDoubleTopic("drive/measured_omega_radps").subscribe(Double.NaN);
+        driverFieldRelativeEnabledSub = table.getBooleanTopic("drive/field_relative_enabled").subscribe(false);
     }
 
     @AfterEach
@@ -315,6 +326,32 @@ class RobotDashboardServiceTest {
     }
 
     @Test
+    void publishesDriveDebugTelemetry() {
+        service.periodic(snapshot(
+                "TELEOP",
+                true,
+                true,
+                55.0,
+                "--",
+                "--",
+                0,
+                0.0,
+                "",
+                0.08,
+                1.6,
+                0.35,
+                0.42,
+                true));
+        nt.flush();
+
+        assertEquals(0.08, driverRawTurnInputSub.get(), 1e-9);
+        assertEquals(1.6, driverCommandedTranslationSub.get(), 1e-9);
+        assertEquals(0.35, driverCommandedOmegaSub.get(), 1e-9);
+        assertEquals(0.42, measuredOmegaSub.get(), 1e-9);
+        assertEquals(true, driverFieldRelativeEnabledSub.get());
+    }
+
+    @Test
     void publishesAutoSelectionMetadata() {
         service.periodic(snapshot("DISABLED", false, false, 60.0));
         nt.flush();
@@ -446,7 +483,8 @@ class RobotDashboardServiceTest {
             boolean enabled,
             boolean climberArmed,
             double timestampSec) {
-        return snapshot(mode, enabled, climberArmed, timestampSec, "--", "--", 0, 0.0, "");
+        return snapshot(mode, enabled, climberArmed, timestampSec, "--", "--", 0, 0.0, "",
+                0.0, 0.0, 0.0, 0.0, false);
     }
 
     private static DashboardSnapshot snapshot(
@@ -459,6 +497,38 @@ class RobotDashboardServiceTest {
             long controlEventSeq,
             double controlEventTimestampSec,
             String controlEventMessage) {
+        return snapshot(
+                mode,
+                enabled,
+                climberArmed,
+                timestampSec,
+                driverButtonsActive,
+                operatorButtonsActive,
+                controlEventSeq,
+                controlEventTimestampSec,
+                controlEventMessage,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                false);
+    }
+
+    private static DashboardSnapshot snapshot(
+            String mode,
+            boolean enabled,
+            boolean climberArmed,
+            double timestampSec,
+            String driverButtonsActive,
+            String operatorButtonsActive,
+            long controlEventSeq,
+            double controlEventTimestampSec,
+            String controlEventMessage,
+            double driverRawTurnInput,
+            double driverCommandedTranslationMps,
+            double driverCommandedOmegaRadPerSec,
+            double measuredOmegaRadPerSec,
+            boolean driverFieldRelativeEnabled) {
         return new DashboardSnapshot(
                 timestampSec,
                 mode,
@@ -471,6 +541,11 @@ class RobotDashboardServiceTest {
                 0.0,
                 0.0,
                 0.0,
+                driverRawTurnInput,
+                driverCommandedTranslationMps,
+                driverCommandedOmegaRadPerSec,
+                measuredOmegaRadPerSec,
+                driverFieldRelativeEnabled,
                 0.0,
                 0.0,
                 false,
