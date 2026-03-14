@@ -29,7 +29,7 @@ public class RobotDashboardService {
         void selectAutoByName(String autoName);
     }
 
-    private static final String CONTRACT_VERSION = "2026.14.0";
+    private static final String CONTRACT_VERSION = "2026.15.0";
 
     private final Actions actions;
 
@@ -47,6 +47,11 @@ public class RobotDashboardService {
     private final DoublePublisher pigeonYawPub;
     private final DoublePublisher pigeonPitchPub;
     private final DoublePublisher pigeonRollPub;
+    private final DoublePublisher driverRawTurnInputPub;
+    private final DoublePublisher driverCommandedTranslationPub;
+    private final DoublePublisher driverCommandedOmegaPub;
+    private final DoublePublisher measuredOmegaPub;
+    private final BooleanPublisher driverFieldRelativeEnabledPub;
 
     private final DoublePublisher shooterLeftRpsPub;
     private final DoublePublisher shooterRightRpsPub;
@@ -241,6 +246,11 @@ public class RobotDashboardService {
         pigeonYawPub = table.getDoubleTopic("imu/pigeon_yaw_deg").publish();
         pigeonPitchPub = table.getDoubleTopic("imu/pigeon_pitch_deg").publish();
         pigeonRollPub = table.getDoubleTopic("imu/pigeon_roll_deg").publish();
+        driverRawTurnInputPub = table.getDoubleTopic("drive/raw_turn_input").publish();
+        driverCommandedTranslationPub = table.getDoubleTopic("drive/commanded_translation_mps").publish();
+        driverCommandedOmegaPub = table.getDoubleTopic("drive/commanded_omega_radps").publish();
+        measuredOmegaPub = table.getDoubleTopic("drive/measured_omega_radps").publish();
+        driverFieldRelativeEnabledPub = table.getBooleanTopic("drive/field_relative_enabled").publish();
 
         shooterLeftRpsPub = table.getDoubleTopic("shooter/left_rps").publish();
         shooterRightRpsPub = table.getDoubleTopic("shooter/right_rps").publish();
@@ -434,6 +444,11 @@ public class RobotDashboardService {
         pigeonYawPub.set(snapshot.pigeonYawDeg());
         pigeonPitchPub.set(snapshot.pigeonPitchDeg());
         pigeonRollPub.set(snapshot.pigeonRollDeg());
+        driverRawTurnInputPub.set(snapshot.driverRawTurnInput());
+        driverCommandedTranslationPub.set(snapshot.driverCommandedTranslationMps());
+        driverCommandedOmegaPub.set(snapshot.driverCommandedOmegaRadPerSec());
+        measuredOmegaPub.set(snapshot.measuredOmegaRadPerSec());
+        driverFieldRelativeEnabledPub.set(snapshot.driverFieldRelativeEnabled());
 
         shooterLeftRpsPub.set(snapshot.shooterLeftRps());
         shooterRightRpsPub.set(snapshot.shooterRightRps());

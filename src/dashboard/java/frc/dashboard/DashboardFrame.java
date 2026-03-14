@@ -156,6 +156,7 @@ public class DashboardFrame extends JFrame {
     private final JLabel cameraDebugLabel = new JLabel("Debug: --");
     private final JLabel cameraErrorLabel = new JLabel("Error: --");
     private final JLabel pigeonLabel = new JLabel("Pigeon: Y -- P -- R --");
+    private final JLabel driveDebugLabel = new JLabel("Drive dbg: turn --  cmd w --  meas w --  field --");
 
     // Operator tab: motor temperatures
     private final JLabel driveTempLabel = new JLabel("Drive: FL -- FR -- BL -- BR --");
@@ -398,6 +399,7 @@ public class DashboardFrame extends JFrame {
         styleCompactLabel(cameraDebugLabel);
         styleCompactLabel(cameraErrorLabel);
         styleMetricLabel(pigeonLabel);
+        styleMetricLabel(driveDebugLabel);
         styleMetricLabel(driveTempLabel);
         styleMetricLabel(shooterTempLabel);
 
@@ -414,7 +416,13 @@ public class DashboardFrame extends JFrame {
         top.add(wrapLabelCard("Readiness", operatorReadyLabel, operatorReadyReasonLabel));
         // Row 3: system health
         top.add(wrapLabelCard("Swerve Modules", swerveAnglesLabel));
-        top.add(wrapLabelCard("System Health", canHealthLabel, cameraStatusLabel, cameraDebugLabel, cameraErrorLabel, pigeonLabel));
+        top.add(wrapLabelCard("System Health",
+                canHealthLabel,
+                cameraStatusLabel,
+                cameraDebugLabel,
+                cameraErrorLabel,
+                pigeonLabel,
+                driveDebugLabel));
         top.add(wrapLabelCard("Motor Temps", driveTempLabel, shooterTempLabel));
         root.add(top, BorderLayout.CENTER);
 
@@ -1166,6 +1174,17 @@ public class DashboardFrame extends JFrame {
                 Double.isFinite(data.pigeonYawDeg())
                         && Double.isFinite(data.pigeonPitchDeg())
                         && Double.isFinite(data.pigeonRollDeg()) ? TEXT : WARN);
+        driveDebugLabel.setText("Drive dbg: turn " + formatMaybe(data.driverRawTurnInput())
+                + "  cmd w " + formatMaybe(data.driverCommandedOmegaRadPerSec())
+                + "  meas w " + formatMaybe(data.measuredOmegaRadPerSec())
+                + "  field " + yesNo(data.driverFieldRelativeEnabled()));
+        boolean driveDebugFinite = Double.isFinite(data.driverRawTurnInput())
+                && Double.isFinite(data.driverCommandedOmegaRadPerSec())
+                && Double.isFinite(data.measuredOmegaRadPerSec());
+        boolean unexpectedOmega = driveDebugFinite
+                && Math.abs(data.driverCommandedOmegaRadPerSec()) <= 0.05
+                && Math.abs(data.measuredOmegaRadPerSec()) > 0.25;
+        driveDebugLabel.setForeground(!driveDebugFinite ? WARN : unexpectedOmega ? BAD : TEXT);
 
         // Operator tab: motor temperatures
         updateTemperatureLabels(data);
@@ -1720,6 +1739,11 @@ public class DashboardFrame extends JFrame {
         sb.append("Pigeon raw deg: yaw=").append(formatMaybe(data.pigeonYawDeg()))
                 .append(" pitch=").append(formatMaybe(data.pigeonPitchDeg()))
                 .append(" roll=").append(formatMaybe(data.pigeonRollDeg())).append('\n');
+        sb.append("Drive dbg: rawTurn=").append(formatMaybe(data.driverRawTurnInput()))
+                .append(" cmdTranslation=").append(formatMaybe(data.driverCommandedTranslationMps()))
+                .append(" cmdOmega=").append(formatMaybe(data.driverCommandedOmegaRadPerSec()))
+                .append(" measuredOmega=").append(formatMaybe(data.measuredOmegaRadPerSec()))
+                .append(" fieldRelative=").append(data.driverFieldRelativeEnabled()).append('\n');
         sb.append("Swerve angles: FL=").append(ONE_DECIMAL.format(data.swerveFLAngleDeg()))
                 .append(" FR=").append(ONE_DECIMAL.format(data.swerveFRAngleDeg()))
                 .append(" BL=").append(ONE_DECIMAL.format(data.swerveBLAngleDeg()))
@@ -1842,6 +1866,20 @@ public class DashboardFrame extends JFrame {
                 "yaw=" + formatMaybe(data.pigeonYawDeg())
                         + " pitch=" + formatMaybe(data.pigeonPitchDeg())
                         + " roll=" + formatMaybe(data.pigeonRollDeg()));
+        boolean driveDebugFinite = Double.isFinite(data.driverRawTurnInput())
+                && Double.isFinite(data.driverCommandedOmegaRadPerSec())
+                && Double.isFinite(data.measuredOmegaRadPerSec());
+        boolean unexpectedOmega = driveDebugFinite
+                && Math.abs(data.driverCommandedOmegaRadPerSec()) <= 0.05
+                && Math.abs(data.measuredOmegaRadPerSec()) > 0.25;
+        appendDeviceLine(
+                sb,
+                statusFromBoolean(connected, liveTelemetry, driveDebugFinite && !unexpectedOmega, "CHECK"),
+                "Drive command vs measured omega",
+                "rawTurn=" + formatMaybe(data.driverRawTurnInput())
+                        + " cmdOmega=" + formatMaybe(data.driverCommandedOmegaRadPerSec())
+                        + " measOmega=" + formatMaybe(data.measuredOmegaRadPerSec())
+                        + " fieldRel=" + data.driverFieldRelativeEnabled());
         appendDeviceLine(
                 sb,
                 statusFromBoolean(connected, liveTelemetry, data.cameraConnected(), "WARN"),

@@ -41,6 +41,16 @@ public class DashboardNtClient implements AutoCloseable {
     private final DoubleSubscriber pigeonYawSub = table.getDoubleTopic("imu/pigeon_yaw_deg").subscribe(Double.NaN);
     private final DoubleSubscriber pigeonPitchSub = table.getDoubleTopic("imu/pigeon_pitch_deg").subscribe(Double.NaN);
     private final DoubleSubscriber pigeonRollSub = table.getDoubleTopic("imu/pigeon_roll_deg").subscribe(Double.NaN);
+    private final DoubleSubscriber driverRawTurnInputSub =
+            table.getDoubleTopic("drive/raw_turn_input").subscribe(Double.NaN);
+    private final DoubleSubscriber driverCommandedTranslationSub =
+            table.getDoubleTopic("drive/commanded_translation_mps").subscribe(Double.NaN);
+    private final DoubleSubscriber driverCommandedOmegaSub =
+            table.getDoubleTopic("drive/commanded_omega_radps").subscribe(Double.NaN);
+    private final DoubleSubscriber measuredOmegaSub =
+            table.getDoubleTopic("drive/measured_omega_radps").subscribe(Double.NaN);
+    private final BooleanSubscriber driverFieldRelativeEnabledSub =
+            table.getBooleanTopic("drive/field_relative_enabled").subscribe(false);
     // Fallback telemetry path while contract topics are being brought up.
     private final DoubleSubscriber pigeonYawSmartSub =
             smartDashboardTable.getDoubleTopic("Swerve/PigeonYawDeg").subscribe(Double.NaN);
@@ -324,6 +334,11 @@ public class DashboardNtClient implements AutoCloseable {
                 pigeonYawDeg,
                 pigeonPitchDeg,
                 pigeonRollDeg,
+                driverRawTurnInputSub.get(),
+                driverCommandedTranslationSub.get(),
+                driverCommandedOmegaSub.get(),
+                measuredOmegaSub.get(),
+                driverFieldRelativeEnabledSub.get(),
                 shooterLeftSub.get(),
                 shooterRightSub.get(),
                 shooterAtSpeedSub.get(),
