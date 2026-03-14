@@ -32,6 +32,7 @@ import edu.wpi.first.math.geometry.Pose2d;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -479,9 +480,10 @@ public class RobotContainer implements RobotRuntimeContainer {
     //    Right Stick Y ........ Manual intake tilt (was climber — changed when climber disabled)
     //    Right Trigger ........ Vision align-and-shoot
     //    Right Bumper ......... Fallback shoot (no vision)
+    //    Y button (hold) ...... Manual distance-based shoot (no alignment)
     //    Left Trigger (hold) .. Intake roller forward (stall-protected)
     //    Left Bumper (hold) ... Intake roller reverse / eject
-    //    Y button ............. Intake tilt up/stow (home angle)
+    //    D-pad Up ............. Intake tilt up/stow (home angle)
     //    B button ............. Intake tilt down/deploy (pickup angle)
     //    X button ............. Re-home intake
     //    A button ............. Align-only (vision yaw test, no shot)
@@ -615,6 +617,9 @@ public class RobotContainer implements RobotRuntimeContainer {
                 buildContinuousFallbackShootCommand()
                         .beforeStarting(() -> logControlEvent("Operator:RB", "Fallback shot requested")));
 
+        // Y button: Manual shoot with vision-calculated speed (no alignment turn).
+        operatorController.y().whileTrue(buildManualDistanceShootCommand());
+
         // Left Trigger: Manual intake roller — speed-match to robot forward motion
         // with a low-speed floor, plus stall detection/recovery.
         operatorController.leftTrigger(TRIGGER_ACTIVE_THRESHOLD).whileTrue(
@@ -637,10 +642,10 @@ public class RobotContainer implements RobotRuntimeContainer {
                         Commands.runOnce(() -> logControlEvent("Operator:X", "IntakeHome requested")),
                         buildIntakeHomeCommand()));
 
-        // Y button: Intake tilt up/stow (home angle)
-        operatorController.y().onTrue(
+        // D-pad Up: Intake tilt up/stow (home angle)
+        operatorController.povUp().onTrue(
                 Commands.sequence(
-                        Commands.runOnce(() -> logControlEvent("Operator:Y", "Intake tilt stow requested")),
+                        Commands.runOnce(() -> logControlEvent("Operator:POV_UP", "Intake tilt stow requested")),
                         buildIntakeTiltMoveCommand(
                                 Constants.Intake.INTAKE_STOW_DEG,
                                 "IntakeTiltStow")));
@@ -903,6 +908,17 @@ public class RobotContainer implements RobotRuntimeContainer {
                 .withName("FallbackShootContinuous");
     }
 
+    private Command buildManualDistanceShootCommand() {
+        return Commands.defer(() -> {
+            double targetRps = getManualDistanceShotTargetRps();
+            return shooter.buildContinuousShootRoutine(feeder, hopper, intake, targetRps)
+                    .beforeStarting(() -> logControlEvent(
+                            "Operator:Y",
+                            "Manual distance shoot requested targetRps=" + formatSigned(targetRps)))
+                    .withName("ManualDistanceShootActive");
+        }, Set.of(shooter, feeder, hopper, intake)).withName("ManualDistanceShoot");
+    }
+
     private DriverDriveUtil.DriveRequest getDriverDriveRequest() {
         return DriverDriveUtil.shapeDrive(
                 getDriverForwardInput(),
@@ -974,6 +990,31 @@ public class RobotContainer implements RobotRuntimeContainer {
                 Math.max(minPower, matchedPower),
                 minPower,
                 Constants.Intake.ROLLER_MATCH_MAX_POWER);
+    }
+
+    private double getManualDistanceShotTargetRps() {
+        VisionResult latestVision = visionResult.get();
+        if (latestVision == null) {
+            return Constants.Shooter.FALLBACK_RPS;
+        }
+
+        double distanceM = latestVision.estimateDistanceM(
+                Constants.Vision.TAG_HEIGHT_M,
+                Constants.Vision.FOCAL_LENGTH_PIXELS);
+        if (!Double.isFinite(distanceM)) {
+            return Constants.Shooter.FALLBACK_RPS;
+        }
+
+        double calibratedDistanceM = VisionSupport.calibrateDistanceM(distanceM);
+        double targetRps = ShooterSubsystem.calculateTargetRPS(calibratedDistanceM);
+        if (!Double.isFinite(targetRps) || targetRps <= 0.0) {
+            return Constants.Shooter.FALLBACK_RPS;
+        }
+
+        return MathUtil.clamp(
+                targetRps,
+                Constants.Shooter.MIN_SHOT_RPS,
+                Constants.Shooter.MAX_SHOT_RPS);
     }
 
     private Command buildIntakeTiltMoveCommand(double targetDegrees, String commandName) {
