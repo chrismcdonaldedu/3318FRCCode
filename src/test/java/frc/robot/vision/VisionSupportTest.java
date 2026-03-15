@@ -72,6 +72,28 @@ class VisionSupportTest {
     }
 
     @Test
+    void retainFreshResultKeepsRecentTargetThroughBriefLoss() {
+        VisionResult freshResult = new VisionResult(18, 1.5, -2.0, 20.0, 9.6, 1.0, -2.0, 1, 1, 0.0);
+
+        assertSame(freshResult, VisionSupport.retainFreshResult(freshResult, null, 10.0, 0.75));
+    }
+
+    @Test
+    void retainFreshResultClearsExpiredTargetAfterTolerance() {
+        VisionResult staleResult = new VisionResult(18, 1.5, -2.0, 20.0, 9.0, 1.0, -2.0, 1, 1, 0.0);
+
+        assertNull(VisionSupport.retainFreshResult(staleResult, null, 10.0, 0.75));
+    }
+
+    @Test
+    void retainFreshResultAlwaysPrefersNewMeasurement() {
+        VisionResult priorResult = new VisionResult(18, 1.5, -2.0, 20.0, 9.6, 1.0, -2.0, 1, 1, 0.0);
+        VisionResult nextResult = new VisionResult(19, -0.5, -1.5, 22.0, 10.0, -0.5, -1.5, 2, 1, 18.0);
+
+        assertSame(nextResult, VisionSupport.retainFreshResult(priorResult, nextResult, 10.0, 0.75));
+    }
+
+    @Test
     void estimateHubCenterAveragesVisibleFacesNotIndividualTags() {
         VisionSupport.HubCenterEstimate estimate = VisionSupport.estimateHubCenter(List.of(
                 new VisionSupport.HubTagObservation(18, 0, 100.0, 200.0, 40.0),
@@ -91,9 +113,22 @@ class VisionSupportTest {
     void estimateHubCenterReturnsNullWhenNoValidObservationsExist() {
         VisionSupport.HubCenterEstimate estimate = VisionSupport.estimateHubCenter(List.of(
                 new VisionSupport.HubTagObservation(18, 0, Double.NaN, 200.0, 40.0),
-                new VisionSupport.HubTagObservation(19, 0, 120.0, 200.0, 0.0)));
+                new VisionSupport.HubTagObservation(19, 0, Double.NaN, 200.0, 0.0)));
 
         assertNull(estimate);
+    }
+
+    @Test
+    void estimateHubCenterFallsBackToYawOnlyWhenPixelHeightIsMissing() {
+        VisionSupport.HubCenterEstimate estimate = VisionSupport.estimateHubCenter(List.of(
+                new VisionSupport.HubTagObservation(18, 0, 120.0, 200.0, 0.0)));
+
+        assertEquals(18, estimate.bestTagId());
+        assertEquals(120.0, estimate.centerX(), 1e-9);
+        assertEquals(200.0, estimate.centerY(), 1e-9);
+        assertEquals(0.0, estimate.bestTagPixelHeight(), 1e-9);
+        assertEquals(1, estimate.hubTagCount());
+        assertEquals(1, estimate.hubFaceCount());
     }
 
     @Test
