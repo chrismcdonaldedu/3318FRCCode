@@ -1099,7 +1099,8 @@ public class DashboardFrame extends JFrame {
                 + "  Gate: " + yesNo(data.alignFeedGateReady()));
         pitchLabel.setText("Pitch: " + formatMaybe(data.alignPitchDeg()) + " deg");
         shotModelLabel.setText("Shot: " + formatMaybe(data.alignTargetRps()) + " RPS"
-                + "  TOF " + formatMaybe(data.alignTimeOfFlightSec()) + " s");
+                + "  TOF " + formatMaybe(data.alignTimeOfFlightSec()) + " s"
+                + "  Dist " + formatMaybe(data.visionDistanceM()) + " m");
         motionLabel.setText("Motion: rad " + formatMaybe(data.alignRadialVelocityMps())
                 + "  lat " + formatMaybe(data.alignLateralVelocityMps())
                 + "  cmd " + formatMaybe(data.alignCommandedXVelocityMps()) + "/"
@@ -1107,6 +1108,7 @@ public class DashboardFrame extends JFrame {
                 + "  cap " + formatMaybe(data.alignTranslationCapMps()));
         visionLabel.setText("Vision: " + yesNo(data.alignHasTarget())
                 + "  Feasible: " + yesNo(data.alignGeometryFeasible())
+                + "  Dist: " + formatMaybe(data.visionDistanceM()) + " m"
                 + "  Tags/Faces: " + data.visionHubTagCount() + "/" + data.visionHubFaceCount());
         abortLabel.setText("Last abort: " + sanitize(data.alignAbortReason()));
         updateYawBar(data.alignAimErrorDeg());
@@ -1138,6 +1140,7 @@ public class DashboardFrame extends JFrame {
 
         operatorVisionLabel.setText("Target: " + yesNo(data.alignHasTarget())
                 + "  Feasible: " + yesNo(data.alignGeometryFeasible())
+                + "  Dist: " + formatMaybe(data.visionDistanceM()) + " m"
                 + "  Gate: " + yesNo(data.alignFeedGateReady())
                 + "  Tags/Faces: " + data.visionHubTagCount() + "/" + data.visionHubFaceCount());
         operatorPhaseLabel.setText("Align phase: " + data.alignState());
@@ -1147,7 +1150,8 @@ public class DashboardFrame extends JFrame {
                 + formatMaybe(data.alignCommandedYVelocityMps()));
         operatorShotModelLabel.setText("Shot model: aim " + formatMaybe(data.alignAimErrorDeg())
                 + "  lead " + formatMaybe(data.alignLeadYawDeg())
-                + "  rps " + formatMaybe(data.alignTargetRps()));
+                + "  rps " + formatMaybe(data.alignTargetRps())
+                + "  dist " + formatMaybe(data.visionDistanceM()) + " m");
         operatorReadyLabel.setText(data.readyToScore() ? "READY" : "NOT READY");
         operatorReadyLabel.setForeground(data.readyToScore() ? OK : BAD);
         operatorReadyReasonLabel.setText("Reason: " + sanitize(data.readyReason()));
