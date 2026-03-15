@@ -778,6 +778,7 @@ public class RobotContainer implements RobotRuntimeContainer {
     }
 
     private DashboardSnapshot buildDashboardSnapshot() {
+        double nowSec = Timer.getFPGATimestamp();
         var pose = swerve.getPose();
         double shooterTargetRps = Constants.Shooter.TARGET_RPS;
         if (AlignAndShootCommand.isTelemetryCommandActive()) {
@@ -802,8 +803,11 @@ public class RobotContainer implements RobotRuntimeContainer {
 
         VisionResult latestVision = visionResult.get();
         CameraDebugInfo latestCameraDebug = cameraDebugInfo.get();
+        boolean visionHasTarget = VisionSupport.isResultFresh(
+                latestVision,
+                nowSec,
+                Constants.Vision.TARGET_LOSS_TOLERANCE_SEC);
         int visionTagId = latestVision != null ? latestVision.tagId() : -1;
-        boolean visionHasTarget = latestVision != null;
         double visionYawDeg = latestVision != null ? latestVision.yawDeg() : Double.NaN;
         double visionPitchDeg = latestVision != null ? latestVision.pitchDeg() : Double.NaN;
         double visionBestTagYawDeg = latestVision != null ? latestVision.bestTagYawDeg() : Double.NaN;
@@ -833,7 +837,7 @@ public class RobotContainer implements RobotRuntimeContainer {
         SwerveSubsystem.ValidationStatus validationStatus = swerve.getValidationStatus();
 
         return new DashboardSnapshot(
-                Timer.getFPGATimestamp(),
+                nowSec,
                 getRobotMode(),
                 DriverStation.isEnabled(),
                 getAllianceName(),

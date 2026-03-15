@@ -76,6 +76,7 @@ public class RioVisionThread extends Thread {
         Mat mat = null;
         Mat grayMat = null;
         double lastGrabErrorLogSec = Double.NEGATIVE_INFINITY;
+        double lastNoHubEstimateLogSec = Double.NEGATIVE_INFINITY;
         boolean firstFrameLogged = false;
         long frameCount = 0;
         int consecutiveGrabFailures = 0;
@@ -193,8 +194,13 @@ public class RioVisionThread extends Thread {
                                 + consecutiveGrabFailures + " consecutive): " + error);
                         lastGrabErrorLogSec = nowSec;
                     }
-                    // Clear the latest result so main loop doesn't use stale data
-                    latestResult.set(null);
+                    // Keep the last good target alive through brief dropouts so
+                    // the main loop can honor TARGET_LOSS_TOLERANCE_SEC.
+                    latestResult.updateAndGet(existing -> VisionSupport.retainFreshResult(
+                            existing,
+                            null,
+                            nowSec,
+                            Constants.Vision.TARGET_LOSS_TOLERANCE_SEC));
                     continue;
                 }
 
@@ -221,7 +227,18 @@ public class RioVisionThread extends Thread {
                 annotateFrame(mat, detections, hubTagIds, hubEstimate);
                 overlayOutput.putFrame(mat);
                 if (hubEstimate == null) {
-                    latestResult.set(null);
+                    if (detections.length > 0 && timestampSec - lastNoHubEstimateLogSec >= 1.0) {
+                        System.out.println("[RioVisionThread] Tags detected but no usable HUB target. "
+                                + "alliance=" + DriverStation.getAlliance().map(Enum::name).orElse("UNKNOWN")
+                                + " expectedHubIds=" + summarizeHubTagIds(hubTagIds)
+                                + " detectedIds=" + summarizeDetectionIds(detections));
+                        lastNoHubEstimateLogSec = timestampSec;
+                    }
+                    latestResult.updateAndGet(existing -> VisionSupport.retainFreshResult(
+                            existing,
+                            null,
+                            timestampSec,
+                            Constants.Vision.TARGET_LOSS_TOLERANCE_SEC));
                     publishNoTargetVisionDebug();
                     continue;
                 }
@@ -246,6 +263,12 @@ public class RioVisionThread extends Thread {
             } catch (Exception ex) {
                 // Log but don't crash — keep retrying next frame
                 System.err.println("[RioVisionThread] Frame processing error: " + ex.getMessage());
+                double nowSec = Timer.getFPGATimestamp();
+                latestResult.updateAndGet(existing -> VisionSupport.retainFreshResult(
+                        existing,
+                        null,
+                        nowSec,
+                        Constants.Vision.TARGET_LOSS_TOLERANCE_SEC));
             }
         }
 
@@ -345,6 +368,36 @@ public class RioVisionThread extends Thread {
                 observations,
                 Constants.Vision.CAMERA_WIDTH / 2.0,
                 Constants.Vision.SINGLE_TAG_CENTER_BIAS_PX_PER_TAG_HEIGHT);
+    }
+
+    private static String summarizeHubTagIds(int[] hubTagIds) {
+        if (hubTagIds == null || hubTagIds.length == 0) {
+            return "ANY_ALLIANCE";
+        }
+        StringBuilder summary = new StringBuilder("[");
+        for (int i = 0; i < hubTagIds.length; i++) {
+            if (i > 0) {
+                summary.append(',');
+            }
+            summary.append(hubTagIds[i]);
+        }
+        summary.append(']');
+        return summary.toString();
+    }
+
+    private static String summarizeDetectionIds(AprilTagDetection[] detections) {
+        if (detections == null || detections.length == 0) {
+            return "[]";
+        }
+        StringBuilder summary = new StringBuilder("[");
+        for (int i = 0; i < detections.length; i++) {
+            if (i > 0) {
+                summary.append(',');
+            }
+            summary.append(detections[i].getId());
+        }
+        summary.append(']');
+        return summary.toString();
     }
 
     private static int[] hubTagIdsForTag(int fiducialId) {

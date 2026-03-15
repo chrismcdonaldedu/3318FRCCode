@@ -69,6 +69,17 @@ public final class VisionSupport {
         return Double.isFinite(ageSec) && ageSec >= 0.0 && ageSec < freshnessThresholdSec;
     }
 
+    public static VisionResult retainFreshResult(
+            VisionResult currentResult,
+            VisionResult nextResult,
+            double nowSec,
+            double freshnessThresholdSec) {
+        if (nextResult != null) {
+            return nextResult;
+        }
+        return isResultFresh(currentResult, nowSec, freshnessThresholdSec) ? currentResult : null;
+    }
+
     public static double calibrateDistanceM(double rawDistanceM) {
         if (!Double.isFinite(rawDistanceM)) {
             return Double.NaN;
@@ -91,6 +102,7 @@ public final class VisionSupport {
         }
 
         HubTagObservation bestObservation = null;
+        boolean bestObservationHasValidHeight = false;
         double minX = Double.POSITIVE_INFINITY;
         double maxX = Double.NEGATIVE_INFINITY;
         int tagCount = 0;
@@ -99,15 +111,21 @@ public final class VisionSupport {
         for (HubTagObservation observation : observations) {
             if (observation == null
                     || !Double.isFinite(observation.centerX())
-                    || !Double.isFinite(observation.centerY())
-                    || !Double.isFinite(observation.pixelHeight())
-                    || observation.pixelHeight() <= 0.0) {
+                    || !Double.isFinite(observation.centerY())) {
                 continue;
             }
 
             tagCount++;
-            if (bestObservation == null || observation.pixelHeight() > bestObservation.pixelHeight()) {
+            boolean hasValidPixelHeight = Double.isFinite(observation.pixelHeight())
+                    && observation.pixelHeight() > 0.0;
+            if (bestObservation == null) {
                 bestObservation = observation;
+                bestObservationHasValidHeight = hasValidPixelHeight;
+            } else if (hasValidPixelHeight
+                    && (!bestObservationHasValidHeight
+                            || observation.pixelHeight() > bestObservation.pixelHeight())) {
+                bestObservation = observation;
+                bestObservationHasValidHeight = true;
             }
 
             minX = Math.min(minX, observation.centerX());
@@ -117,7 +135,7 @@ public final class VisionSupport {
             faces.computeIfAbsent(faceKey, ignored -> new FaceAccumulator()).add(observation);
         }
 
-        if (bestObservation == null || faces.isEmpty()) {
+        if (bestObservation == null || faces.isEmpty() || tagCount == 0) {
             return null;
         }
 
@@ -134,7 +152,8 @@ public final class VisionSupport {
                 && tagCount == 1
                 && Double.isFinite(imageCenterX)
                 && Double.isFinite(singleTagCenterBiasPxPerTagHeight)
-                && singleTagCenterBiasPxPerTagHeight > 0.0) {
+                && singleTagCenterBiasPxPerTagHeight > 0.0
+                && bestObservationHasValidHeight) {
             double towardImageCenter = Math.signum(imageCenterX - hubCenterX);
             if (towardImageCenter != 0.0) {
                 double maxBiasPx = Math.abs(imageCenterX - hubCenterX);
