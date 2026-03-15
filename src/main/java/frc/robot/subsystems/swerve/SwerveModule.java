@@ -331,13 +331,14 @@ public class SwerveModule {
     // --------------------------------------------------------------------------
     /**
      * Copies the latest fast-loop status values from Phoenix's cached signals.
-     * This does not force an on-demand CAN refresh.
+     * Force-refresh these signals so drivetrain control/odometry always works
+     * from the newest steer/drive data each loop.
      */
     public void refreshFastSignals() {
-        cachedSteerAngle = Rotation2d.fromRotations(steerPosition.getValueAsDouble());
-        cachedDriveVelocityRps = driveVelocity.getValueAsDouble();
-        cachedDriveAppliedVoltage = driveAppliedVoltage.getValueAsDouble();
-        cachedDrivePositionRot = drivePosition.getValueAsDouble();
+        cachedSteerAngle = Rotation2d.fromRotations(steerPosition.refresh().getValueAsDouble());
+        cachedDriveVelocityRps = driveVelocity.refresh().getValueAsDouble();
+        cachedDriveAppliedVoltage = driveAppliedVoltage.refresh().getValueAsDouble();
+        cachedDrivePositionRot = drivePosition.refresh().getValueAsDouble();
     }
 
     /**
