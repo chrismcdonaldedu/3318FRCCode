@@ -52,13 +52,17 @@ class RobotContainerAutoSelectionStateTest {
     void competitionAutoCatalogMatchesConfiguredAutos() {
         var autos = RobotAutoCatalog.competitionPathPlannerAutos();
 
-        assertEquals(3, autos.size());
+        assertEquals(5, autos.size());
         assertEquals("Depot", autos.get(0).chooserName());
         assertEquals("Depot", autos.get(0).autoFileName());
-        assertEquals("Only Shoot", autos.get(1).chooserName());
-        assertEquals("OnlyShoot", autos.get(1).autoFileName());
-        assertEquals("Outpost", autos.get(2).chooserName());
-        assertEquals("Outpost", autos.get(2).autoFileName());
+        assertEquals("Only Shoot Left", autos.get(1).chooserName());
+        assertEquals("OnlyShootLeft", autos.get(1).autoFileName());
+        assertEquals("Only Shoot Middle", autos.get(2).chooserName());
+        assertEquals("OnlyShootMiddle", autos.get(2).autoFileName());
+        assertEquals("Only Shoot Right", autos.get(3).chooserName());
+        assertEquals("OnlyShootRight", autos.get(3).autoFileName());
+        assertEquals("Outpost", autos.get(4).chooserName());
+        assertEquals("Outpost", autos.get(4).autoFileName());
         assertArrayEquals(
                 new String[] {
                     RobotAutoCatalog.NAMED_HOME_INTAKE,

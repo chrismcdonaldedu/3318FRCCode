@@ -125,6 +125,7 @@ public class RobotContainer implements RobotRuntimeContainer {
     // private double lastClimberPower = 0.0;
     private double lastManualShooterTargetRps = 0.0;
     private double lastManualHopperPower = 0.0;
+    private double lastManualFeederPower = 0.0;
     private double lastIntakeTiltPower = 0.0;
     private double lastDriverRawTurnInput = 0.0;
     private double lastDriverCommandedTranslationMps = 0.0;
@@ -621,8 +622,8 @@ public class RobotContainer implements RobotRuntimeContainer {
                     refreshOperatorCommandSummary();
                 }, shooter).withName("OperatorShooterManualDefault"));
 
-        // Mirror the manual left-stick shooter state so the hopper advances balls
-        // during manual shooting, but yields immediately to real shot commands.
+        // Mirror the manual left-stick shooter state so hopper + feeder advance balls
+        // during manual shooting, but yield immediately to real shot commands.
         hopper.setDefaultCommand(
                 Commands.run(() -> {
                     double manualHopperPower = getManualShooterHopperPower();
@@ -635,6 +636,19 @@ public class RobotContainer implements RobotRuntimeContainer {
                     lastManualHopperPower = manualHopperPower;
                     refreshOperatorCommandSummary();
                 }, hopper).withName("OperatorHopperManualShooterDefault"));
+
+        feeder.setDefaultCommand(
+                Commands.run(() -> {
+                    double manualFeederPower = getManualShooterFeederPower();
+                    if (manualFeederPower > 0.0) {
+                        feeder.setPower(manualFeederPower);
+                    } else {
+                        feeder.stop();
+                    }
+
+                    lastManualFeederPower = manualFeederPower;
+                    refreshOperatorCommandSummary();
+                }, feeder).withName("OperatorFeederManualShooterDefault"));
 
         // Right stick Y: Manual intake tilt control with deadband to prevent jitter.
         intake.setDefaultCommand(
@@ -1123,29 +1137,37 @@ public class RobotContainer implements RobotRuntimeContainer {
                 : 0.0;
     }
 
+    private double getManualShooterFeederPower() {
+        return getOperatorManualShooterTargetRps() > 0.0
+                ? Constants.Shooter.MANUAL_FEEDER_POWER
+                : 0.0;
+    }
+
     private double getManualDistanceShotTargetRps() {
+        return getAlignAndShootTargetRps();
+    }
+
+    private double getAlignAndShootTargetRps() {
         VisionResult latestVision = visionResult.get();
         if (latestVision == null) {
-            return Constants.Shooter.FALLBACK_RPS;
+            return Constants.Shooter.TARGET_RPS;
         }
 
         double distanceM = latestVision.estimateDistanceM(
                 Constants.Vision.TAG_HEIGHT_M,
                 Constants.Vision.FOCAL_LENGTH_PIXELS);
-        if (!Double.isFinite(distanceM)) {
-            return Constants.Shooter.FALLBACK_RPS;
+        if (!Double.isFinite(distanceM) || distanceM <= 0.0) {
+            return Constants.Shooter.TARGET_RPS;
         }
 
         double calibratedDistanceM = VisionSupport.calibrateDistanceM(distanceM);
-        double targetRps = ShooterSubsystem.calculateTargetRPS(calibratedDistanceM);
-        if (!Double.isFinite(targetRps) || targetRps <= 0.0) {
-            return Constants.Shooter.FALLBACK_RPS;
+        ShooterSubsystem.ShotSolution stationarySolution =
+                ShooterSubsystem.calculateMovingShotSolution(calibratedDistanceM, 0.0, 0.0);
+        double targetRps = stationarySolution.targetRps();
+        if (!stationarySolution.feasible() || !Double.isFinite(targetRps) || targetRps <= 0.0) {
+            return Constants.Shooter.TARGET_RPS;
         }
-
-        return MathUtil.clamp(
-                targetRps,
-                Constants.Shooter.MIN_SHOT_RPS,
-                Constants.Shooter.MAX_SHOT_RPS);
+        return targetRps;
     }
 
     private Command buildIntakeTiltMoveCommand(double targetDegrees, String commandName) {
@@ -1358,6 +1380,7 @@ public class RobotContainer implements RobotRuntimeContainer {
         // --- CLIMBER DISABLED: removed climber fields from summary ---
         operatorCommandSummary = "manualShooterRps=" + formatSigned(lastManualShooterTargetRps)
                 + " hopperPower=" + formatSigned(lastManualHopperPower)
+                + " feederPower=" + formatSigned(lastManualFeederPower)
                 + " tiltPower=" + formatSigned(lastIntakeTiltPower);
         // operatorCommandSummary = "climberPower=" + formatSigned(lastClimberPower)
         //         + " manualShooterRps=" + formatSigned(lastManualShooterTargetRps)
