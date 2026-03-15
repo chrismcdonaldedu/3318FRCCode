@@ -83,6 +83,13 @@ public class SwerveModule {
 
     private Rotation2d lastAngle = new Rotation2d();
     private Rotation2d cachedSteerAngle = new Rotation2d();
+    private double cachedCANcoderPositionRot = 0.0;
+    private double cachedCANcoderAbsoluteRot = 0.0;
+    private boolean cachedCANcoderOk = false;
+    private double cachedDriveVelocityRps = 0.0;
+    private double cachedDriveAppliedVoltage = 0.0;
+    private double cachedDrivePositionRot = 0.0;
+    private double cachedDriveTempC = 0.0;
 
     // Track the coupling compensation offset so a belt-skip re-sync
     // (which jumps steer position) doesn't cause a sudden change in
@@ -254,7 +261,8 @@ public class SwerveModule {
                 steerMotor::optimizeBusUtilization,
                 "Steer TalonFX bus optimization (id=" + steerId + ")");
 
-        refreshSteerAngle();
+        refreshFastSignals();
+        refreshTelemetrySignals();
         lastAngle = getSteerAngle();
 
         // Initialize coupling compensation tracking from current positions.
@@ -321,12 +329,29 @@ public class SwerveModule {
     // CANcoder at boot, periodically re-synced).
     // With FusedCANcoder (Pro), this returns the fused position.
     // --------------------------------------------------------------------------
-    /** Refreshes the cached steer angle from CAN. Call once per loop cycle. */
-    public void refreshSteerAngle() {
-        cachedSteerAngle = Rotation2d.fromRotations(steerPosition.refresh().getValueAsDouble());
+    /**
+     * Copies the latest fast-loop status values from Phoenix's cached signals.
+     * This does not force an on-demand CAN refresh.
+     */
+    public void refreshFastSignals() {
+        cachedSteerAngle = Rotation2d.fromRotations(steerPosition.getValueAsDouble());
+        cachedDriveVelocityRps = driveVelocity.getValueAsDouble();
+        cachedDriveAppliedVoltage = driveAppliedVoltage.getValueAsDouble();
+        cachedDrivePositionRot = drivePosition.getValueAsDouble();
     }
 
-    /** Returns the cached steer angle (updated by refreshSteerAngle). */
+    /**
+     * Copies low-priority telemetry from Phoenix's cached signals.
+     * This preserves the configured status frame rates instead of bypassing them.
+     */
+    public void refreshTelemetrySignals() {
+        cachedCANcoderPositionRot = cancoderPosition.getValueAsDouble();
+        cachedCANcoderAbsoluteRot = cancoderAbsolutePosition.getValueAsDouble();
+        cachedCANcoderOk = cancoderPosition.getStatus().isOK();
+        cachedDriveTempC = driveTemp.getValueAsDouble();
+    }
+
+    /** Returns the cached steer angle (updated by refreshFastSignals). */
     public Rotation2d getSteerAngle() {
         return cachedSteerAngle;
     }
@@ -336,18 +361,17 @@ public class SwerveModule {
      * Use this only for diagnostics and re-sync checks, NOT for control loops.
      */
     public Rotation2d getAbsoluteAngle() {
-        return Rotation2d.fromRotations(cancoderPosition.refresh().getValueAsDouble());
+        return Rotation2d.fromRotations(cachedCANcoderPositionRot);
     }
 
     public SwerveModuleState getState() {
-        double motorRPS    = driveVelocity.refresh().getValueAsDouble();
-        double wheelRPS    = motorRPS / Constants.Swerve.DRIVE_GEAR_RATIO;
+        double wheelRPS    = cachedDriveVelocityRps / Constants.Swerve.DRIVE_GEAR_RATIO;
         double speedMps    = wheelRPS * Constants.Swerve.WHEEL_CIRCUMFERENCE_M;
         return new SwerveModuleState(speedMps, getSteerAngle());
     }
 
     public SwerveModulePosition getPosition() {
-        double motorRotations  = drivePosition.refresh().getValueAsDouble();
+        double motorRotations  = cachedDrivePositionRot;
         // Compensate for coupling: steering the module causes the drive motor
         // to spin slightly. Subtract that parasitic motion for accurate odometry.
         // Use delta-based tracking so a belt-skip re-sync (which jumps steer
@@ -363,11 +387,11 @@ public class SwerveModule {
     }
 
     public double getDriveTemperatureC() {
-        return driveTemp.refresh().getValueAsDouble();
+        return cachedDriveTempC;
     }
 
     public double getDriveAppliedVoltage() {
-        return driveAppliedVoltage.refresh().getValueAsDouble();
+        return cachedDriveAppliedVoltage;
     }
 
     /** Module name for telemetry (e.g. "FL", "FR", "BL", "BR"). */
@@ -377,24 +401,22 @@ public class SwerveModule {
 
     /** Returns the raw CANCoder absolute position (no offset) for diagnostics. */
     public double getCANcoderAbsoluteRaw() {
-        double configuredAbsoluteRot = cancoderAbsolutePosition.refresh().getValueAsDouble();
-        return SwerveCalibrationUtil.sample(configuredAbsoluteRot, cancoderOffsetRot).noOffsetRot();
+        return SwerveCalibrationUtil.sample(cachedCANcoderAbsoluteRot, cancoderOffsetRot).noOffsetRot();
     }
 
     /** Returns the CANCoder position value used for control (with offset applied). */
     public double getCANcoderPositionRot() {
-        return cancoderPosition.refresh().getValueAsDouble();
+        return cachedCANcoderPositionRot;
     }
 
     /** Returns true if the latest CANCoder read was OK (not stale/error). */
     public boolean isCANcoderOk() {
-        return cancoderPosition.refresh().getStatus().isOK();
+        return cachedCANcoderOk;
     }
 
     /** Returns a calibration sample from the existing CANcoder (no duplicate handles). */
     public SwerveCalibrationUtil.CalibrationSample getCalibrationSample() {
-        double configuredAbsoluteRot = cancoderAbsolutePosition.refresh().getValueAsDouble();
-        return SwerveCalibrationUtil.sample(configuredAbsoluteRot, cancoderOffsetRot);
+        return SwerveCalibrationUtil.sample(cachedCANcoderAbsoluteRot, cancoderOffsetRot);
     }
 
     // --------------------------------------------------------------------------
@@ -412,8 +434,11 @@ public class SwerveModule {
             return false; // FusedCANcoder handles this automatically
         }
 
-        double internalRot = steerPosition.refresh().getValueAsDouble();
-        double cancoderRot = cancoderPosition.refresh().getValueAsDouble();
+        refreshFastSignals();
+        refreshTelemetrySignals();
+
+        double internalRot = cachedSteerAngle.getRotations();
+        double cancoderRot = cachedCANcoderPositionRot;
 
         // Wrap the difference to [-0.5, +0.5] to handle wrap-around
         double error = cancoderRot - internalRot;

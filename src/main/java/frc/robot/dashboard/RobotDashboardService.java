@@ -14,6 +14,7 @@ import frc.robot.subsystems.swerve.SwerveCorner;
 import frc.robot.subsystems.swerve.SwerveValidationMode;
 
 public class RobotDashboardService {
+    private static final double SNAPSHOT_PUBLISH_PERIOD_SEC = 0.1;
 
     public interface Actions {
         void zeroHeading();
@@ -226,6 +227,7 @@ public class RobotDashboardService {
     private long swerveValidationSeqSeen = 0;
     private long stopSwerveValidationSeqSeen = 0;
     private long selectAutoSeqSeen = 0;
+    private double lastSnapshotPublishTimestampSec = Double.NEGATIVE_INFINITY;
 
     public RobotDashboardService(Actions actions) {
         this(actions, NetworkTableInstance.getDefault());
@@ -433,7 +435,10 @@ public class RobotDashboardService {
     }
 
     public void periodic(DashboardSnapshot snapshot) {
-        publishSnapshot(snapshot);
+        if (snapshot.timestampSec() - lastSnapshotPublishTimestampSec >= SNAPSHOT_PUBLISH_PERIOD_SEC) {
+            publishSnapshot(snapshot);
+            lastSnapshotPublishTimestampSec = snapshot.timestampSec();
+        }
         processCommandRequests(snapshot);
     }
 

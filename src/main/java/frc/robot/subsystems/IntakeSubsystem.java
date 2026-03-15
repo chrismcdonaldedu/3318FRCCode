@@ -75,6 +75,8 @@ public class IntakeSubsystem extends SubsystemBase {
     private boolean homeLimitSwitchPressed = false;
     private boolean minSoftLimitLatched = false;
     private boolean maxSoftLimitLatched = false;
+    private double cachedRollerCurrentAmps = 0.0;
+    private boolean cachedRollerCurrentSignalOk = false;
 
     // --------------------------------------------------------------------------
     // Constructor
@@ -146,6 +148,7 @@ public class IntakeSubsystem extends SubsystemBase {
                 rollerMotor::optimizeBusUtilization,
                 "Intake roller bus optimization (id=" + Constants.CAN.INTAKE_ROLLER + ")");
 
+        updateRollerTelemetry();
         updateHomeLimitSwitchState();
     }
 
@@ -155,6 +158,7 @@ public class IntakeSubsystem extends SubsystemBase {
     @Override
     public void periodic() {
         updateHomeLimitSwitchState();
+        updateRollerTelemetry();
 
         // If we boot while already at the home switch, trust that as a valid zero.
         if (!isHomed && getLimitSwitchPressed()) {
@@ -194,14 +198,16 @@ public class IntakeSubsystem extends SubsystemBase {
     public record RollerCurrentSample(double amps, boolean signalOk) {}
 
     public RollerCurrentSample sampleRollerCurrent() {
-        var refreshed = rollerStatorCurrent.refresh();
-        return new RollerCurrentSample(
-                refreshed.getValueAsDouble(),
-                refreshed.getStatus().isOK());
+        return new RollerCurrentSample(cachedRollerCurrentAmps, cachedRollerCurrentSignalOk);
     }
 
     public double getRollerCurrentAmps() {
         return sampleRollerCurrent().amps();
+    }
+
+    private void updateRollerTelemetry() {
+        cachedRollerCurrentAmps = rollerStatorCurrent.getValueAsDouble();
+        cachedRollerCurrentSignalOk = rollerStatorCurrent.getStatus().isOK();
     }
 
     // --------------------------------------------------------------------------

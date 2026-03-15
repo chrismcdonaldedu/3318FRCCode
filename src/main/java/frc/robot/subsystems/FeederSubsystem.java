@@ -26,6 +26,7 @@ public class FeederSubsystem extends SubsystemBase {
 
     private final SparkMax feederMotor =
             new SparkMax(Constants.CAN.FEEDER_NEO, MotorType.kBrushless);
+    private double cachedCurrentAmps = 0.0;
 
     public FeederSubsystem() {
         SparkMaxConfig config = new SparkMaxConfig();
@@ -39,11 +40,12 @@ public class FeederSubsystem extends SubsystemBase {
 
     @Override
     public void periodic() {
-        SmartDashboard.putNumber("Feeder/CurrentAmps", getCurrentAmps());
+        cachedCurrentAmps = feederMotor.getOutputCurrent();
+        SmartDashboard.putNumber("Feeder/CurrentAmps", cachedCurrentAmps);
     }
 
     public double getCurrentAmps() {
-        return feederMotor.getOutputCurrent();
+        return cachedCurrentAmps;
     }
 
     // Sets motor power. Positive = toward shooter. Negative = clear/reverse.

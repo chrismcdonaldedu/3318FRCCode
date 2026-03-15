@@ -14,6 +14,7 @@ package frc.robot.subsystems;
 
 import com.ctre.phoenix6.CANBus;
 import com.ctre.phoenix6.StatusCode;
+import com.ctre.phoenix6.StatusSignal;
 import com.ctre.phoenix6.configs.TalonFXConfiguration;
 import com.ctre.phoenix6.controls.VelocityVoltage;
 import com.ctre.phoenix6.hardware.TalonFX;
@@ -39,9 +40,20 @@ public class ShooterSubsystem extends SubsystemBase {
     private final VelocityVoltage velocityRequest = new VelocityVoltage(0)
             .withEnableFOC(Constants.Swerve.USE_PHOENIX_PRO_FEATURES);
 
+    @SuppressWarnings("rawtypes")
+    private final StatusSignal leftVelocitySignal = leftShooter.getVelocity();
+    @SuppressWarnings("rawtypes")
+    private final StatusSignal rightVelocitySignal = rightShooter.getVelocity();
+    @SuppressWarnings("rawtypes")
+    private final StatusSignal leftTempSignal = leftShooter.getDeviceTemp();
+    @SuppressWarnings("rawtypes")
+    private final StatusSignal rightTempSignal = rightShooter.getDeviceTemp();
+
     // Cached velocity values — updated once per periodic() to avoid redundant CAN reads
     private double cachedLeftRPS = 0;
     private double cachedRightRPS = 0;
+    private double cachedLeftTempC = 0;
+    private double cachedRightTempC = 0;
 
     // The currently commanded target RPS (updated by setShooterVelocity).
     // Used by periodic() so the dashboard AtSpeed indicator reflects the actual target,
@@ -81,18 +93,21 @@ public class ShooterSubsystem extends SubsystemBase {
         // Reduce CAN status frame rates without starving the ready-to-shoot gate.
         // Velocity needs low enough latency that isAtSpeed() can react promptly.
         // Position and temperature at 4 Hz — we rarely read these.
-        leftShooter.getVelocity().setUpdateFrequency(Constants.Shooter.VELOCITY_SIGNAL_HZ);
+        leftVelocitySignal.setUpdateFrequency(Constants.Shooter.VELOCITY_SIGNAL_HZ);
         leftShooter.getPosition().setUpdateFrequency(4);
-        leftShooter.getDeviceTemp().setUpdateFrequency(1);
-        rightShooter.getVelocity().setUpdateFrequency(Constants.Shooter.VELOCITY_SIGNAL_HZ);
+        leftTempSignal.setUpdateFrequency(1);
+        rightVelocitySignal.setUpdateFrequency(Constants.Shooter.VELOCITY_SIGNAL_HZ);
         rightShooter.getPosition().setUpdateFrequency(4);
-        rightShooter.getDeviceTemp().setUpdateFrequency(1);
+        rightTempSignal.setUpdateFrequency(1);
         applyWithRetry(
                 leftShooter::optimizeBusUtilization,
                 "Left shooter bus optimization (id=" + Constants.CAN.SHOOTER_LEFT + ")");
         applyWithRetry(
                 rightShooter::optimizeBusUtilization,
                 "Right shooter bus optimization (id=" + Constants.CAN.SHOOTER_RIGHT + ")");
+
+        cachedLeftTempC = leftTempSignal.getValueAsDouble();
+        cachedRightTempC = rightTempSignal.getValueAsDouble();
     }
 
     // --------------------------------------------------------------------------
@@ -103,8 +118,10 @@ public class ShooterSubsystem extends SubsystemBase {
     public void periodic() {
         // Cache velocity once per loop — avoids redundant CAN reads in
         // isAtSpeed(), getLeftRPS(), getRightRPS() later this cycle.
-        cachedLeftRPS = leftShooter.getVelocity().getValueAsDouble();
-        cachedRightRPS = rightShooter.getVelocity().getValueAsDouble();
+        cachedLeftRPS = leftVelocitySignal.getValueAsDouble();
+        cachedRightRPS = rightVelocitySignal.getValueAsDouble();
+        cachedLeftTempC = leftTempSignal.getValueAsDouble();
+        cachedRightTempC = rightTempSignal.getValueAsDouble();
 
         SmartDashboard.putNumber("Shooter/LeftRPS", cachedLeftRPS);
         SmartDashboard.putNumber("Shooter/RightRPS", cachedRightRPS);
@@ -153,11 +170,11 @@ public class ShooterSubsystem extends SubsystemBase {
     }
 
     public double getLeftTemperatureC() {
-        return leftShooter.getDeviceTemp().getValueAsDouble();
+        return cachedLeftTempC;
     }
 
     public double getRightTemperatureC() {
-        return rightShooter.getDeviceTemp().getValueAsDouble();
+        return cachedRightTempC;
     }
 
     public record ShotSolution(
