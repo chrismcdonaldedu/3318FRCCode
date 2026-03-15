@@ -450,9 +450,9 @@ public final class Constants {
         // If roller current stays above STALL_CURRENT_THRESHOLD_A for STALL_TIME_SEC,
         // the roller is jammed and will automatically reverse and retry.
         public static final double STALL_CURRENT_THRESHOLD_A = 35.0;  // TUNE ME
-        public static final double STALL_TIME_SEC             = 0.3;
-        public static final double STALL_REVERSE_POWER        = -0.5;
-        public static final double STALL_REVERSE_TIME_SEC     = 0.25;
+        public static final double STALL_TIME_SEC             = 0.5;
+        public static final double STALL_REVERSE_POWER        = -0.2;
+        public static final double STALL_REVERSE_TIME_SEC     = 0.1;
         public static final int    STALL_MAX_RETRIES          = 3;
     }
 
