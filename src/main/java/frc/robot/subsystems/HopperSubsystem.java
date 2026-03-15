@@ -25,6 +25,7 @@ public class HopperSubsystem extends SubsystemBase {
 
     private final SparkMax floorMotor =
             new SparkMax(Constants.CAN.HOPPER_FLOOR_NEO, MotorType.kBrushless);
+    private double cachedCurrentAmps = 0.0;
 
     public HopperSubsystem() {
         SparkMaxConfig config = new SparkMaxConfig();
@@ -36,13 +37,14 @@ public class HopperSubsystem extends SubsystemBase {
 
     @Override
     public void periodic() {
+        cachedCurrentAmps = floorMotor.getOutputCurrent();
         // Publish current draw to dashboard — useful for detecting jams
         SmartDashboard.putNumber("Hopper/CurrentAmps",
-                getCurrentAmps());
+                cachedCurrentAmps);
     }
 
     public double getCurrentAmps() {
-        return floorMotor.getOutputCurrent();
+        return cachedCurrentAmps;
     }
 
     // Sets motor power. Positive = toward feeder. Negative = reverse/clear.

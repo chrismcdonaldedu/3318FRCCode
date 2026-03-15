@@ -306,6 +306,23 @@ class RobotDashboardServiceTest {
     }
 
     @Test
+    void throttlesSnapshotPublishingWithoutSkippingCommands() {
+        service.periodic(snapshot("TELEOP", true, false, 10.0));
+        nt.flush();
+        assertEquals(10.0, robotTimestampSub.get(), 1e-9);
+
+        stopDriveCmdPub.set(2);
+        nt.flush();
+        service.periodic(snapshot("TELEOP", true, false, 10.02));
+        nt.flush();
+
+        assertEquals(10.0, robotTimestampSub.get(), 1e-9);
+        assertEquals(1, actions.stopDriveCalls);
+        assertEquals("stop_drive", ackCommandSub.get());
+        assertEquals(2L, ackSeqSub.get());
+    }
+
+    @Test
     void publishesRobotTimestampHeartbeat() {
         service.periodic(snapshot("TELEOP", true, true, 42.5));
         nt.flush();

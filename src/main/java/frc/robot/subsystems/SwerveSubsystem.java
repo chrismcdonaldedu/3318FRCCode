@@ -114,6 +114,7 @@ public class SwerveSubsystem extends SubsystemBase {
 
     // ---- Field visualization (appears in Shuffleboard / SmartDashboard) ----
     private final Field2d field = new Field2d();
+    private ChassisSpeeds cachedRobotRelativeSpeeds = new ChassisSpeeds();
 
     // Throttle counter for low-priority diagnostics (CANcoder health, angles).
     // Only publish every 5th loop (100ms) to reduce CAN reads and dashboard traffic.
@@ -187,19 +188,21 @@ public class SwerveSubsystem extends SubsystemBase {
     // --------------------------------------------------------------------------
     @Override
     public void periodic() {
-        // Refresh steer angles once per loop to avoid redundant CAN reads
+        // Copy the latest Phoenix status values from the background CAN stream.
         for (SwerveModule mod : modules) {
-            mod.refreshSteerAngle();
+            mod.refreshFastSignals();
+            mod.refreshTelemetrySignals();
         }
 
         // Update the odometry estimate with the latest gyro and wheel data
         poseEstimator.update(getGyroYaw(), getModulePositions());
+        cachedRobotRelativeSpeeds = kinematics.toChassisSpeeds(getModuleStates());
 
         // Update the field visualization (robot position on the dashboard)
         field.setRobotPose(getPose());
 
         // Publish useful debugging data to SmartDashboard
-        ChassisSpeeds measuredSpeeds = getRobotRelativeSpeeds();
+        ChassisSpeeds measuredSpeeds = cachedRobotRelativeSpeeds;
         SmartDashboard.putNumber("Swerve/HeadingDeg",        getHeading().getDegrees());
         SmartDashboard.putNumber("Swerve/PigeonYawDeg",      getPigeonYawDeg());
         SmartDashboard.putNumber("Swerve/PigeonPitchDeg",    getPigeonPitchDeg());
@@ -210,7 +213,7 @@ public class SwerveSubsystem extends SubsystemBase {
 
         // ---- Throttled diagnostics (every 100ms) ----
         // Module angles and CANCoder health are low-priority telemetry.
-        // Publishing every 5th loop reduces extra CAN reads per cycle.
+        // Publishing every 5th loop keeps dashboard chatter low.
         diagnosticLoopCounter++;
         if (diagnosticLoopCounter >= 5) {
             diagnosticLoopCounter = 0;
@@ -376,7 +379,7 @@ public class SwerveSubsystem extends SubsystemBase {
     }
 
     public ChassisSpeeds getRobotRelativeSpeeds() {
-        return kinematics.toChassisSpeeds(getModuleStates());
+        return cachedRobotRelativeSpeeds;
     }
 
     public Rotation2d getHeading() {
